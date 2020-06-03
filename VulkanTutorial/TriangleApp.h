@@ -19,6 +19,7 @@ private:
 	glm::vec4 vec;
 
 	VkInstance instance;
+	VkDebugUtilsMessengerEXT debugMessenger;
 	const std::vector<const char*> validationLayers = {
 		"VK_LAYER_KHRONOS_validation"
 	};
@@ -40,8 +41,18 @@ private:
 
 	//Initialize the Vulkan application
 	void CreateInstance();
+	//Setup the debug util messenger
+	void SetupDebugMessenger();
 	//Checks that all requested validation layers are supported
 	bool CheckValidationLayerSupport();
 	//Finds out the extensions that are required for the program to run
 	std::vector<const char*> getRequiredExtensions();
+
+	//The method that is called when Vulkan throws an error
+	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+		VkDebugUtilsMessageTypeFlagsEXT messageType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		void* pUserData
+		);
 };
