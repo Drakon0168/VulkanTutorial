@@ -20,6 +20,7 @@ private:
 
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessenger;
+	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	const std::vector<const char*> validationLayers = {
 		"VK_LAYER_KHRONOS_validation"
 	};
@@ -43,6 +44,15 @@ private:
 	void CreateInstance();
 	//Setup the debug util messenger
 	void SetupDebugMessenger();
+	//Setup the physical device
+	void PickPhysicalDevice();
+
+	//Check if the given device will work with the program
+	bool IsDeviceSuitable(VkPhysicalDevice device);
+	//Scores devices based on suitability in order to pick the best device
+	int RateDevice(VkPhysicalDevice device);
+	//Setup a Debug Util Messenger CreateInfo
+	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 	//Checks that all requested validation layers are supported
 	bool CheckValidationLayerSupport();
 	//Finds out the extensions that are required for the program to run

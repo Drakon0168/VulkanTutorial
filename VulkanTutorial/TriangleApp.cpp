@@ -57,7 +57,7 @@ void TriangleApp::InitWindow()
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 	//Create the window
-	window = glfwCreateWindow(windowWidth, windowHeight, "Vulkan window", nullptr, nullptr);
+	window = glfwCreateWindow(windowWidth, windowHeight, "Vulkan Window", nullptr, nullptr);
 }
 
 void TriangleApp::InitVulkan()
@@ -67,6 +67,9 @@ void TriangleApp::InitVulkan()
 
 	//Set the debug callback function
 	SetupDebugMessenger();
+
+	//Pick the physical device to use
+	PickPhysicalDevice();
 }
 
 void TriangleApp::Cleanup()
@@ -80,6 +83,8 @@ void TriangleApp::Cleanup()
 
 	//Cleanup GLFW resources
 	glfwDestroyWindow(window);
+
+	//Terminate the window
 	glfwTerminate();
 }
 
@@ -175,12 +180,17 @@ void TriangleApp::CreateInstance()
 	createInfo.enabledLayerCount = 0;
 
 	//Add validation layers if they are enabled
+	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
 	if (enableValidationLayers) {
 		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 		createInfo.ppEnabledLayerNames = validationLayers.data();
+
+		populateDebugMessengerCreateInfo(debugCreateInfo);
+		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)& debugCreateInfo;
 	}
 	else {
 		createInfo.enabledLayerCount = 0;
+		createInfo.pNext = nullptr;
 	}
 
 	//Create the instance
@@ -196,17 +206,73 @@ void TriangleApp::SetupDebugMessenger()
 		return;
 	}
 
-	VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	createInfo.pfnUserCallback = DebugCallback;
-	createInfo.pUserData = nullptr;
+	//Setup the CreateInfo
+	VkDebugUtilsMessengerCreateInfoEXT createInfo;
+	populateDebugMessengerCreateInfo(createInfo);
 
 	//Set the messenger
 	if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to setup messenger!");
 	}
+}
+
+void TriangleApp::PickPhysicalDevice()
+{
+	uint32_t deviceCount = 0;
+	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+
+	if (deviceCount == 0) {
+		throw std::runtime_error("Failed to find GPU's with Vulkan support!");
+	}
+
+	//Get physical devices
+	std::vector<VkPhysicalDevice> physicalDevices;
+	vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
+
+	//Add devices to sorted list based on suitability
+	std::multimap<int, VkPhysicalDevice> deviceMap;
+
+	for (auto device : physicalDevices) {
+		int score = RateDevice(device);
+		deviceMap.insert(std::make_pair(score, device));
+	}
+
+	//Check the key of the first element in the map
+	if (deviceMap.rbegin()->first > 0) {
+		//If the key is valid use this physical device
+		physicalDevice = deviceMap.rbegin()->second;
+	}
+	else {
+		throw std::exception("No suitable decive found!");
+	}
+}
+
+int TriangleApp::RateDevice(VkPhysicalDevice device)
+{
+	//Get Device Properties
+	VkPhysicalDeviceProperties deviceProperties;
+	vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+	//Get Device Features
+	VkPhysicalDeviceFeatures deviceFeatures;
+	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+	//Check for base specifications needed to run the program, if these are not met return 0
+	if (!(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader)) {
+		return 0;
+	}
+
+	return 1;
+}
+
+void TriangleApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+{
+	createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	createInfo.pfnUserCallback = DebugCallback;
+	createInfo.pUserData = nullptr;
 }
 
 bool TriangleApp::CheckValidationLayerSupport()
@@ -254,24 +320,28 @@ std::vector<const char*> TriangleApp::getRequiredExtensions()
 
 VKAPI_ATTR VkBool32 VKAPI_CALL TriangleApp::DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 {
-	/*
-	Methods for handling different types of messages unused for the moment so it is commented out
+	//TODO: Figure out how to change text colors to make errors and warnings stand out more	
+	//Methods for handling different types of messages unused for the moment so it is commented out
 	switch (messageSeverity) {
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
 		//Diagnostic Messages
+		std::cout << "Diagnostic Message: " << std::endl;
 		break;
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
 		//Informational Messages
+		std::cout << "Informational Message: " << std::endl;
 		break;
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
 		//Warnings
+		std::cout << "Warning: " << std::endl;
 		break;
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
 		//Errors
+		std::cout << "Error: " << std::endl;
 		break;
 	}
 
-	switch (messageType) {
+	/*switch (messageType) {
 	case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
 		//Unrelated events
 		break;
@@ -281,10 +351,9 @@ VKAPI_ATTR VkBool32 VKAPI_CALL TriangleApp::DebugCallback(VkDebugUtilsMessageSev
 	case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT:
 		//Performance could be improved
 		break;
-	}
-	*/
+	}*/
 
-	std::cerr << "Validation Layer: " << pCallbackData->pMessage << std::endl;
+	std::cerr << "\tValidation Layer: " << pCallbackData->pMessage << std::endl;
 	return VK_FALSE;
 }
 
