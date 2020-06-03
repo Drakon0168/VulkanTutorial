@@ -23,6 +23,12 @@ private:
 		"VK_LAYER_KHRONOS_validation"
 	};
 
+#ifdef NDEBUG
+	const bool enableValidationLayers = false;
+#else
+	const bool enableValidationLayers = true;
+#endif
+
 	//Initialize GLFW resources and create the window
 	void InitWindow();
 	//Initialize Vulkan resources
@@ -36,4 +42,6 @@ private:
 	void CreateInstance();
 	//Checks that all requested validation layers are supported
 	bool CheckValidationLayerSupport();
+	//Finds out the extensions that are required for the program to run
+	std::vector<const char*> getRequiredExtensions();
 };

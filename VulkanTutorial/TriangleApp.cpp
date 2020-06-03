@@ -1,9 +1,6 @@
 #include "pch.h"
 #include "TriangleApp.h"
 
-#include <stdio.h>
-#include <conio.h>
-
 #pragma region Setup
 
 void TriangleApp::Run()
@@ -61,16 +58,10 @@ void TriangleApp::MainLoop()
 
 #pragma endregion
 
-#pragma region Vulkan Functions
+#pragma region Vulkan Setup
 
 void TriangleApp::CreateInstance()
 {
-#ifdef NDEBUG
-	const bool enableValidationLayers = false;
-#else
-	const bool enableValidationLayers = true;
-#endif
-
 	if (enableValidationLayers && !CheckValidationLayerSupport()) {
 		throw std::runtime_error("Requested validation layer is not available!");
 	}
@@ -102,42 +93,42 @@ void TriangleApp::CreateInstance()
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
 	//Find the number of required extensions
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	std::vector<const char*> requiredExtensions = getRequiredExtensions();
+	uint32_t requiredExtensionsCount = requiredExtensions.size();
 
 	//Print out the extensions that have been found and the extensions that are needed
 	std::cout << "Found " << extensionCount << " extensions:" << std::endl;
 	for (VkExtensionProperties e : extensions) {
-		//textcolor(YELLOW);
-		_cprintf("\t%s\n", e.extensionName);
-		getch();
-		//std::cout << "\t" << e.extensionName << std::endl;
+		std::cout << "\t" << e.extensionName << std::endl;
 	}
 
-	std::cout << "\nRequired " << glfwExtensionCount << " extensions:" << std::endl;
-	for (uint32_t i = 0; i < glfwExtensionCount; i++) {
-		std::cout << "\t" << glfwExtensions[i] << std::endl;
+	std::cout << "\nRequired " << requiredExtensionsCount << " extensions:" << std::endl;
+	for (uint32_t i = 0; i < requiredExtensionsCount; i++) {
+		std::cout << "\t" << requiredExtensions[i] << std::endl;
 	}
 
 	//Ensure that required extensions exist
-	for (int i = 0; i < glfwExtensionCount; i++) {
+	for (uint32_t i = 0; i < requiredExtensionsCount; i++) {
 		bool foundExtension = false;
 
-		for (int j = 0; j < extensionCount; j++) {
-			if (strcmp(glfwExtensions[i], extensions[j].extensionName) == 0) {
+		for (uint32_t j = 0; j < extensionCount; j++) {
+			if (strcmp(requiredExtensions[i], extensions[j].extensionName) == 0) {
 				foundExtension = true;
 				break;
 			}
 		}
 
 		if (!foundExtension) {
-			throw std::runtime_error("Could not find required extension");
+			char message[256] = "Could not find required extension: ";
+			strcat_s(message, sizeof(message), requiredExtensions[i]);
+
+			throw std::runtime_error(message);
 		}
 	}
 
 	//Add supported extensions to the CreateInfo struct
-	createInfo.enabledExtensionCount = glfwExtensionCount;
-	createInfo.ppEnabledExtensionNames = glfwExtensions;
+	createInfo.enabledExtensionCount = requiredExtensionsCount;
+	createInfo.ppEnabledExtensionNames = requiredExtensions.data();
 	createInfo.enabledLayerCount = 0;
 
 	//Add validation layers if they are enabled
@@ -180,6 +171,22 @@ bool TriangleApp::CheckValidationLayerSupport()
 	}
 
 	return true;
+}
+
+std::vector<const char*> TriangleApp::getRequiredExtensions()
+{
+	//Find extensions required by GLFW
+	uint32_t glfwExtensionCount = 0;
+	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+	//If validation layers are enabled add Debug Utilities to required extension list
+	if (enableValidationLayers) {
+		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+	}
+
+	return extensions;
 }
 
 #pragma endregion
