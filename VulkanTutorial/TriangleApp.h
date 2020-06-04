@@ -3,10 +3,11 @@
 
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
+	std::optional<uint32_t> presentFamily;
 
 	//Returns true if all of the queue families have been set
 	bool IsConplete() {
-		return graphicsFamily.has_value();
+		return graphicsFamily.has_value() && presentFamily.has_value();
 	}
 };
 
@@ -24,10 +25,17 @@ private:
 	glm::vec4 vec;
 
 	VkInstance instance;
+	
 	VkDebugUtilsMessengerEXT debugMessenger;
+
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice device;
+	
 	VkQueue graphicsQueue;
+	VkQueue presentQueue;
+
+	VkSurfaceKHR surface;
+
 	const std::vector<const char*> validationLayers = {
 		"VK_LAYER_KHRONOS_validation"
 	};
@@ -61,6 +69,9 @@ private:
 
 	//Setup the logical device that interfaces with the physical device
 	void CreateLogicalDevice();
+
+	//Creates a surface for Vulkan to render to
+	void CreateSurface();
 	
 	//Setup the debug util messenger
 	void SetupDebugMessenger();
