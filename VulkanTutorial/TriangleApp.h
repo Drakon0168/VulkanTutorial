@@ -1,12 +1,13 @@
 #pragma once
 #include "pch.h"
 
-#include <stdexcept>
-#include <functional>
-#include <cstdlib>
-
 struct QueueFamilyIndices {
-	uint32_t graphicsFamily;
+	std::optional<uint32_t> graphicsFamily;
+
+	//Returns true if all of the queue families have been set
+	bool IsConplete() {
+		return graphicsFamily.has_value();
+	}
 };
 
 class TriangleApp

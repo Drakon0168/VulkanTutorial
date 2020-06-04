@@ -246,7 +246,7 @@ void TriangleApp::PickPhysicalDevice()
 		physicalDevice = deviceMap.rbegin()->second;
 	}
 	else {
-		throw std::exception("No suitable decive found!");
+		throw std::exception("No suitable device found!");
 	}
 }
 
@@ -254,7 +254,27 @@ QueueFamilyIndices TriangleApp::FindQueueFamilies(VkPhysicalDevice device)
 {
 	QueueFamilyIndices indices = {};
 
+	//Find the queue families
+	uint32_t queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
+	//Find a queue that supports graphics operations
+	int i = 0;
+
+	for (const auto queueFamily : queueFamilies) {
+		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+			indices.graphicsFamily = i;
+		}
+
+		//Exit the loop if we've found all of the necessary queue families
+		if (indices.IsConplete()) {
+			break;
+		}
+
+		i++;
+	}
 
 	return indices;
 }
@@ -270,7 +290,14 @@ int TriangleApp::RateDevice(VkPhysicalDevice device)
 	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
 	//Check for base specifications needed to run the program, if these are not met return 0
+	//Device does not support geometry shaders
 	if (!deviceFeatures.geometryShader) {
+		return 0;
+	}
+
+	//Device cannot process graphics commands
+	QueueFamilyIndices queueFamilies = FindQueueFamilies(device);
+	if (!queueFamilies.IsConplete()) {
 		return 0;
 	}
 

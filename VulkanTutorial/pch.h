@@ -11,6 +11,9 @@
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 
+#include <stdexcept>
+#include <functional>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <vector>
