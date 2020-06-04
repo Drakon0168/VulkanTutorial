@@ -70,10 +70,17 @@ void TriangleApp::InitVulkan()
 
 	//Pick the physical device to use
 	PickPhysicalDevice();
+
+	//Create the logical device
+	CreateLogicalDevice();
 }
 
 void TriangleApp::Cleanup()
 {
+	//Destroy Logical Device
+	vkDestroyDevice(device, nullptr);
+
+	//Destroy Debug Utils Messenger if it was created
 	if (enableValidationLayers) {
 		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 	}
@@ -319,6 +326,50 @@ int TriangleApp::RateDevice(VkPhysicalDevice device)
 	score += deviceProperties.limits.maxImageDimension2D;
 
 	return score;
+}
+
+#pragma endregion
+
+#pragma region Logical Device Management
+
+void TriangleApp::CreateLogicalDevice()
+{
+	//Setup Queue Families
+	QueueFamilyIndices indices = FindQueueFamilies(physicalDevice);
+
+	VkDeviceQueueCreateInfo queueCreateInfo = {};
+	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value;
+	queueCreateInfo.queueCount = 1;
+	float queuePriority = 1.0f;
+	queueCreateInfo.pQueuePriorities = &queuePriority;
+
+	//Set used device features
+	VkPhysicalDeviceFeatures deviceFeatures = {};
+
+	//Setup Logical Device
+	VkDeviceCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	createInfo.pQueueCreateInfos = &queueCreateInfo;
+	createInfo.queueCreateInfoCount = 1;
+	createInfo.pEnabledFeatures = &deviceFeatures;
+	createInfo.enabledExtensionCount = 0;
+	
+	if (enableValidationLayers) {
+		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+		createInfo.ppEnabledLayerNames = validationLayers.data();
+	}
+	else{
+		createInfo.enabledLayerCount = 0;
+	}
+
+	//Create the Logical Device
+	if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
+		throw std::exception("Failed to create logical device!");
+	}
+
+	//Set the queues
+	vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue)
 }
 
 #pragma endregion

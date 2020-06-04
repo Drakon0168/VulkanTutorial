@@ -26,6 +26,8 @@ private:
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+	VkDevice device;
+	VkQueue graphicsQueue;
 	const std::vector<const char*> validationLayers = {
 		"VK_LAYER_KHRONOS_validation"
 	};
@@ -56,6 +58,9 @@ private:
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 	//Scores devices based on suitability in order to pick the best device
 	int RateDevice(VkPhysicalDevice device);
+
+	//Setup the logical device that interfaces with the physical device
+	void CreateLogicalDevice();
 	
 	//Setup the debug util messenger
 	void SetupDebugMessenger();
