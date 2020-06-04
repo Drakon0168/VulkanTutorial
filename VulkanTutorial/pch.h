@@ -12,8 +12,10 @@
 #include <glm/mat4x4.hpp>
 
 #include <stdexcept>
-#include <functional>
 #include <cstdlib>
+#include <cstdint>
+#include <functional>
+#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <vector>

@@ -11,14 +11,20 @@ struct QueueFamilyIndices {
 	}
 };
 
+struct SwapChainSupportDetails {
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
+};
+
 class TriangleApp
 {
 public:
 	//Initailizes the window and starts the main loop
 	void Run();
 private:
-	const int windowWidth = 800;
-	const int windowHeight = 600;
+	const int WINDOW_WIDTH = 800;
+	const int WINDOW_HEIGHT = 600;
 
 	GLFWwindow* window;
 	glm::mat4 matrix;
@@ -29,15 +35,24 @@ private:
 	VkDebugUtilsMessengerEXT debugMessenger;
 
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	VkDevice device;
+	VkDevice logicalDevice;
 	
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 
 	VkSurfaceKHR surface;
 
+	VkSwapchainKHR swapChain;
+	std::vector<VkImage> swapChainImages;
+	VkFormat swapChainImageFormat;
+	VkExtent2D swapChainExtent;
+
 	const std::vector<const char*> validationLayers = {
 		"VK_LAYER_KHRONOS_validation"
+	};
+
+	const std::vector<const char*> deviceExtensions = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 
 #ifdef NDEBUG
@@ -64,14 +79,29 @@ private:
 	void PickPhysicalDevice();
 	//Finds the graphics queue family associated with this physical device
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
+	//Checks that a physical device supports the required extensions
+	bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
 	//Scores devices based on suitability in order to pick the best device
 	int RateDevice(VkPhysicalDevice device);
+	//Checks whether the device is capable of running the program
+	bool IsDeviceSuitable(VkPhysicalDevice device, VkPhysicalDeviceFeatures deviceFeatures);
 
 	//Setup the logical device that interfaces with the physical device
 	void CreateLogicalDevice();
 
 	//Creates a surface for Vulkan to render to
 	void CreateSurface();
+
+	//Creates the swap chain
+	void CreateSwapChain();
+	//Populates the swap chain support struct
+	SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
+	//Chooses one of the available swap chain formats
+	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+	//Chooses one of the available swap chain present modes
+	VkPresentModeKHR ChooseSwapSurfacePresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+	//Chooses the size of the frames in the swap chain
+	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities);
 	
 	//Setup the debug util messenger
 	void SetupDebugMessenger();
