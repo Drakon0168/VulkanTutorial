@@ -5,11 +5,11 @@
 
 //Create the Debug Utils Messenger from the Create Info that is set up in SetupDebugCallback()
 VkResult CreateDebugUtilsMessengerEXT(
-	VkInstance instance, 
+	VkInstance instance,
 	const VkDebugUtilsMessengerCreateInfoEXT* createInfo,
 	const VkAllocationCallbacks* pAllocator,
 	VkDebugUtilsMessengerEXT* pDebugMessenger
-	) {
+) {
 	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 
 	if (func != nullptr) {
@@ -25,7 +25,7 @@ void DestroyDebugUtilsMessengerEXT(
 	VkInstance instance,
 	VkDebugUtilsMessengerEXT debugMessenger,
 	const VkAllocationCallbacks* pAllocator
-	) {
+) {
 	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 
 	if (func != nullptr) {
@@ -139,7 +139,7 @@ void TriangleApp::CreateInstance()
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
 	//Find the number of required extensions
-	std::vector<const char*> requiredExtensions = getRequiredExtensions();
+	std::vector<const char*> requiredExtensions = GetRequiredExtensions();
 	uint32_t requiredExtensionsCount = static_cast<uint32_t>(requiredExtensions.size());
 
 	/*
@@ -185,7 +185,7 @@ void TriangleApp::CreateInstance()
 		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 		createInfo.ppEnabledLayerNames = validationLayers.data();
 
-		populateDebugMessengerCreateInfo(debugCreateInfo);
+		PopulateDebugMessengerCreateInfo(debugCreateInfo);
 		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)& debugCreateInfo;
 	}
 	else {
@@ -199,22 +199,25 @@ void TriangleApp::CreateInstance()
 	}
 }
 
-void TriangleApp::SetupDebugMessenger()
+std::vector<const char*> TriangleApp::GetRequiredExtensions()
 {
-	//Don't run if validation labels are disabled
-	if (!enableValidationLayers) {
-		return;
+	//Find extensions required by GLFW
+	uint32_t glfwExtensionCount = 0;
+	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+	//If validation layers are enabled add Debug Utilities to required extension list
+	if (enableValidationLayers) {
+		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 	}
 
-	//Setup the CreateInfo
-	VkDebugUtilsMessengerCreateInfoEXT createInfo;
-	populateDebugMessengerCreateInfo(createInfo);
-
-	//Set the messenger
-	if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to setup messenger!");
-	}
+	return extensions;
 }
+
+#pragma endregion
+
+#pragma region Physical Device Management
 
 void TriangleApp::PickPhysicalDevice()
 {
@@ -247,6 +250,15 @@ void TriangleApp::PickPhysicalDevice()
 	}
 }
 
+QueueFamilyIndices TriangleApp::FindQueueFamilies(VkPhysicalDevice device)
+{
+	QueueFamilyIndices indices = {};
+
+
+
+	return indices;
+}
+
 int TriangleApp::RateDevice(VkPhysicalDevice device)
 {
 	//Get Device Properties
@@ -265,10 +277,13 @@ int TriangleApp::RateDevice(VkPhysicalDevice device)
 	//Set a score based on optional features, initial score of 1 because it meets requirements
 	int score = 1;
 
+	/*
+	//Output device scoring information
 	std::cout << deviceProperties.deviceName << " Score:" << std::endl;
 	std::cout << "\tMeets Requirements: 1" << std::endl;
 	std::cout << "\tDedicated Graphics Card: " << (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ? 1000 : 0) << std::endl;
 	std::cout << "\tMax Image Dimensions 2D: " << deviceProperties.limits.maxImageDimension2D << std::endl;
+	*/
 
 	if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
 		score += 1000;
@@ -279,7 +294,28 @@ int TriangleApp::RateDevice(VkPhysicalDevice device)
 	return score;
 }
 
-void TriangleApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+#pragma endregion
+
+#pragma region Debug Management
+
+void TriangleApp::SetupDebugMessenger()
+{
+	//Don't run if validation labels are disabled
+	if (!enableValidationLayers) {
+		return;
+	}
+
+	//Setup the CreateInfo
+	VkDebugUtilsMessengerCreateInfoEXT createInfo;
+	PopulateDebugMessengerCreateInfo(createInfo);
+
+	//Set the messenger
+	if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to setup messenger!");
+	}
+}
+
+void TriangleApp::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
 	createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -314,22 +350,6 @@ bool TriangleApp::CheckValidationLayerSupport()
 	}
 
 	return true;
-}
-
-std::vector<const char*> TriangleApp::getRequiredExtensions()
-{
-	//Find extensions required by GLFW
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-	//If validation layers are enabled add Debug Utilities to required extension list
-	if (enableValidationLayers) {
-		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-	}
-
-	return extensions;
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL TriangleApp::DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)

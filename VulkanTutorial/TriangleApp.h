@@ -5,6 +5,10 @@
 #include <functional>
 #include <cstdlib>
 
+struct QueueFamilyIndices {
+	uint32_t graphicsFamily;
+};
+
 class TriangleApp
 {
 public:
@@ -42,21 +46,22 @@ private:
 
 	//Initialize the Vulkan application
 	void CreateInstance();
-	//Setup the debug util messenger
-	void SetupDebugMessenger();
+	//Finds out the extensions that are required for the program to run
+	std::vector<const char*> GetRequiredExtensions();
+
 	//Setup the physical device
 	void PickPhysicalDevice();
-
-	//Check if the given device will work with the program
-	bool IsDeviceSuitable(VkPhysicalDevice device);
+	//Finds the graphics queue family associated with this physical device
+	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 	//Scores devices based on suitability in order to pick the best device
 	int RateDevice(VkPhysicalDevice device);
+	
+	//Setup the debug util messenger
+	void SetupDebugMessenger();
 	//Setup a Debug Util Messenger CreateInfo
-	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 	//Checks that all requested validation layers are supported
 	bool CheckValidationLayerSupport();
-	//Finds out the extensions that are required for the program to run
-	std::vector<const char*> getRequiredExtensions();
 
 	//The method that is called when Vulkan throws an error
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
