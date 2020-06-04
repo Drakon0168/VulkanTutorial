@@ -226,7 +226,7 @@ void TriangleApp::PickPhysicalDevice()
 	}
 
 	//Get physical devices
-	std::vector<VkPhysicalDevice> physicalDevices;
+	std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
 	vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
 
 	//Add devices to sorted list based on suitability
@@ -258,11 +258,25 @@ int TriangleApp::RateDevice(VkPhysicalDevice device)
 	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
 	//Check for base specifications needed to run the program, if these are not met return 0
-	if (!(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader)) {
+	if (!deviceFeatures.geometryShader) {
 		return 0;
 	}
 
-	return 1;
+	//Set a score based on optional features, initial score of 1 because it meets requirements
+	int score = 1;
+
+	std::cout << deviceProperties.deviceName << " Score:" << std::endl;
+	std::cout << "\tMeets Requirements: 1" << std::endl;
+	std::cout << "\tDedicated Graphics Card: " << (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ? 1000 : 0) << std::endl;
+	std::cout << "\tMax Image Dimensions 2D: " << deviceProperties.limits.maxImageDimension2D << std::endl;
+
+	if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+		score += 1000;
+	}
+
+	score += deviceProperties.limits.maxImageDimension2D;
+
+	return score;
 }
 
 void TriangleApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
