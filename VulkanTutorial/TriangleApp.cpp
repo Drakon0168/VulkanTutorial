@@ -93,10 +93,18 @@ void TriangleApp::InitVulkan()
 
 	//Create the swap chain
 	CreateSwapChain();
+
+	//Create the image views
+	CreateImageViews();
 }
 
 void TriangleApp::Cleanup()
 {
+	//Destroy Image Views
+	for (VkImageView view : swapChainImageView) {
+		vkDestroyImageView(logicalDevice, view, nullptr);
+	}
+
 	//Destroy Swap Chain
 	vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
 
@@ -521,6 +529,35 @@ void TriangleApp::CreateSwapChain()
 
 	if (vkCreateSwapchainKHR(logicalDevice, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
 		throw std::exception("Failed to create swap chain!");
+	}
+}
+
+void TriangleApp::CreateImageViews()
+{
+	swapChainImageView.resize(swapChainImages.size());
+
+	//Create Image Views
+	for (size_t i = 0; i < swapChainImages.size(); i++) {
+		//Setup Create Info
+		VkImageViewCreateInfo createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		createInfo.image = swapChainImages[i];
+		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		createInfo.format = swapChainImageFormat;
+		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.layerCount = 1;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+
+		//Create the Image View
+		if (vkCreateImageView(logicalDevice, &createInfo, nullptr, &swapChainImageView[i]) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create Image Views");
+		}
 	}
 }
 
