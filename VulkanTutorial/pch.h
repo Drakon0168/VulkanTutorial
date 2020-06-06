@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <cstdint>
+#include <fstream>
 #include <functional>
 #include <algorithm>
 #include <iostream>

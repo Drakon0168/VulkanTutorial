@@ -19,6 +19,9 @@
     <Filter Include="Source Files\Demo">
       <UniqueIdentifier>{94d622a7-f781-420d-ab9d-acba3510e1f6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Shaders">
+      <UniqueIdentifier>{3fd312c6-df3d-42c1-874a-880424f3d678}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -38,5 +41,13 @@
     <ClInclude Include="TriangleApp.h">
       <Filter>Header Files\Demo</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\BasicShader.vert">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\BasicShader.frag">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

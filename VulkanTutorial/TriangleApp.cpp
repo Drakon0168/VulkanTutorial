@@ -96,6 +96,9 @@ void TriangleApp::InitVulkan()
 
 	//Create the image views
 	CreateImageViews();
+
+	//Create the graphics pipeline
+	CreateGraphicsPipeline();
 }
 
 void TriangleApp::Cleanup()
@@ -628,6 +631,58 @@ VkExtent2D TriangleApp::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& surface
 
 #pragma endregion
 
+#pragma region Graphics Pipeline Management
+
+void TriangleApp::CreateGraphicsPipeline()
+{
+	//Read in shader code
+	auto vertexShaderCode = ReadFile("shaders/vert.spv");
+	auto fragmentShaderCode = ReadFile("shaders/frag.spv");
+
+	//Create shader module
+	VkShaderModule vertexShaderModule = CreateShaderModule(vertexShaderCode);
+	VkShaderModule fragmentShaderModule = CreateShaderModule(fragmentShaderCode);
+
+	//Setup shader stages
+	VkPipelineShaderStageCreateInfo vertexStageCreateInfo = {};
+	vertexStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	vertexStageCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+	vertexStageCreateInfo.module = vertexShaderModule;
+	vertexStageCreateInfo.pName = "main";
+
+	VkPipelineShaderStageCreateInfo fragmentStageCreateInfo = {};
+	fragmentStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	fragmentStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	fragmentStageCreateInfo.module = fragmentShaderModule;
+	fragmentStageCreateInfo.pName = "main";
+
+	VkPipelineShaderStageCreateInfo shaderStages[] = {
+		vertexStageCreateInfo,
+		fragmentStageCreateInfo
+	};
+
+	//Cleanup shader modules
+	vkDestroyShaderModule(logicalDevice, vertexShaderModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, fragmentShaderModule, nullptr);
+}
+
+VkShaderModule TriangleApp::CreateShaderModule(const std::vector<char>& code)
+{
+	VkShaderModuleCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.codeSize = code.size();
+	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+	VkShaderModule shaderModule;
+	if (vkCreateShaderModule(logicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+		throw std::exception("Failed to create Shader Module!");
+	}
+
+	return shaderModule;
+}
+
+#pragma endregion
+
 #pragma region Debug Management
 
 void TriangleApp::SetupDebugMessenger()
@@ -721,6 +776,31 @@ VKAPI_ATTR VkBool32 VKAPI_CALL TriangleApp::DebugCallback(VkDebugUtilsMessageSev
 
 	std::cerr << "\tValidation Layer: " << pCallbackData->pMessage << std::endl;
 	return VK_FALSE;
+}
+
+#pragma endregion
+
+#pragma region Helper Functions
+
+std::vector<char> TriangleApp::ReadFile(const std::string& filePath)
+{
+	std::ifstream file(filePath, std::ios::ate | std::ios::binary);
+
+	if (!file.is_open()) {
+		throw std::exception("Failed to open file!");
+	}
+
+	//Allocate space for the contents of the file
+	size_t fileSize = (size_t)file.tellg();
+	std::vector<char> buffer(fileSize);
+
+	//Read the contents of the file
+	file.seekg(0);
+	file.read(buffer.data(), fileSize);
+
+	//Close the file and return
+	file.close();
+	return buffer;
 }
 
 #pragma endregion

@@ -105,7 +105,12 @@ private:
 	VkPresentModeKHR ChooseSwapSurfacePresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	//Chooses the size of the frames in the swap chain
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities);
-	
+
+	//Creates the graphics pipeline
+	void CreateGraphicsPipeline();
+	//Creates the Vulkan shader from the shader data
+	VkShaderModule CreateShaderModule(const std::vector<char>& code);
+
 	//Setup the debug util messenger
 	void SetupDebugMessenger();
 	//Setup a Debug Util Messenger CreateInfo
@@ -120,4 +125,6 @@ private:
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData
 		);
+
+	static std::vector<char> ReadFile(const std::string& filePath);
 };
