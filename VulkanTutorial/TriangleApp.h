@@ -36,7 +36,9 @@ private:
 
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice logicalDevice;
-	
+	VkRenderPass renderPass;
+	VkPipelineLayout pipelineLayout;
+
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 
@@ -108,6 +110,8 @@ private:
 
 	//Creates the graphics pipeline
 	void CreateGraphicsPipeline();
+	//Creates the Render Pass
+	void CreateRenderPass();
 	//Creates the Vulkan shader from the shader data
 	VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
