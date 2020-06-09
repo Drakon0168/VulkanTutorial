@@ -48,6 +48,7 @@ private:
 	VkSwapchainKHR swapChain;
 	std::vector<VkImage> swapChainImages;
 	std::vector<VkImageView> swapChainImageView;
+	std::vector<VkFramebuffer> swapChainFrameBuffers;
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
 
@@ -100,6 +101,8 @@ private:
 	void CreateSwapChain();
 	//Creates the image views to be used by the swap chain
 	void CreateImageViews();
+	//Creates the frame buffers to be used by the swap chain
+	void CreateFrameBuffers();
 	//Populates the swap chain support struct
 	SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
 	//Chooses one of the available swap chain formats

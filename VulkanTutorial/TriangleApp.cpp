@@ -102,10 +102,18 @@ void TriangleApp::InitVulkan()
 
 	//Create the graphics pipeline
 	CreateGraphicsPipeline();
+
+	//Create the frame buffers
+	CreateFrameBuffers();
 }
 
 void TriangleApp::Cleanup()
 {
+	//Destroy Frame Buffers
+	for (auto frameBuffer : swapChainFrameBuffers) {
+		vkDestroyFramebuffer(logicalDevice, frameBuffer, nullptr);
+	}
+
 	//Destroy the graphics pipeline
 	vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
 
@@ -572,6 +580,32 @@ void TriangleApp::CreateImageViews()
 		//Create the Image View
 		if (vkCreateImageView(logicalDevice, &createInfo, nullptr, &swapChainImageView[i]) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create Image Views");
+		}
+	}
+}
+
+void TriangleApp::CreateFrameBuffers()
+{
+	//Resize vector to have enough space
+	swapChainFrameBuffers.resize(swapChainImages.size());
+
+	for (size_t i = 0; i < swapChainFrameBuffers.size(); i++) {
+		VkImageView attachments[] = {
+			swapChainImageView[i]
+		};
+
+		//Setup frame buffer create infos
+		VkFramebufferCreateInfo createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		createInfo.renderPass = renderPass;
+		createInfo.attachmentCount = 1;
+		createInfo.pAttachments = attachments;
+		createInfo.width = swapChainExtent.width;
+		createInfo.height = swapChainExtent.height;
+		createInfo.layers = 1;
+
+		if (vkCreateFramebuffer(logicalDevice, &createInfo, nullptr, &swapChainFrameBuffers[i]) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create Frame Buffer!");
 		}
 	}
 }
