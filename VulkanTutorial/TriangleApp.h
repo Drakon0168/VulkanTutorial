@@ -25,6 +25,7 @@ public:
 private:
 	const int WINDOW_WIDTH = 800;
 	const int WINDOW_HEIGHT = 600;
+	const int MAX_FRAMES_IN_FLIGHT = 2;
 
 	GLFWwindow* window;
 	glm::mat4 matrix;
@@ -39,6 +40,12 @@ private:
 	VkRenderPass renderPass;
 	VkPipelineLayout pipelineLayout;
 	VkPipeline graphicsPipeline;
+
+	std::vector<VkSemaphore> imageAvailableSemaphores;
+	std::vector<VkSemaphore> renderFinishedSemaphores;
+	std::vector<VkFence> inFlightFences;
+	std::vector<VkFence> imagesInFlight;
+	size_t currentFrame = 0;
 
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
@@ -75,10 +82,13 @@ private:
 	void InitVulkan();
 	//Cleans up GLFW and Vulkan resources called after the window is closed
 	void Cleanup();
+
 	//Called every frame and used to update objects on the screen
 	void MainLoop();
 	//Draws all of the objects to the screen
 	void DrawFrame();
+	//Creates the semaphores to manage async frame rendering
+	void CreateSyncObjects();
 
 	//Initialize the Vulkan application
 	void CreateInstance();

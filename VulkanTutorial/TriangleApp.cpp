@@ -111,10 +111,20 @@ void TriangleApp::InitVulkan()
 
 	//Create the Command Buffers
 	CreateCommandBuffers();
+
+	//Create the Semaphores and Fences
+	CreateSyncObjects();
 }
 
 void TriangleApp::Cleanup()
 {
+	//Destroy Semaphores
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		vkDestroySemaphore(logicalDevice, imageAvailableSemaphores[i], nullptr);
+		vkDestroySemaphore(logicalDevice, renderFinishedSemaphores[i], nullptr);
+		vkDestroyFence(logicalDevice, inFlightFences[i], nullptr);
+	}
+	
 	//Destroy Command Pool
 	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 
@@ -174,11 +184,88 @@ void TriangleApp::MainLoop()
 		glfwPollEvents();
 		DrawFrame();
 	}
+
+	vkDeviceWaitIdle(logicalDevice);
 }
 
 void TriangleApp::DrawFrame()
 {
+	//Wait for the fence to finish
+	vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+	vkResetFences(logicalDevice, 1, &inFlightFences[currentFrame]);
 
+	//Find the index of the next image
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(logicalDevice, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+	//Make sure the image is not already in use
+	if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
+		vkWaitForFences(logicalDevice, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+	}
+
+	//Mark the image as being in use
+	imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+
+	//Submit to the graphics queue
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = waitSemaphores;
+	submitInfo.pWaitDstStageMask = waitStages;
+
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+
+	VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = signalSemaphores;
+
+	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to submit draw command buffer!");
+	}
+
+	//Present on the screen
+	VkPresentInfoKHR presentInfo = {};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = signalSemaphores;
+	
+	VkSwapchainKHR swapChains[] = { swapChain };
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swapChains;
+	presentInfo.pImageIndices = &imageIndex;
+	presentInfo.pResults = nullptr;
+
+	vkQueuePresentKHR(presentQueue, &presentInfo);
+
+	//Update the current frame
+	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+void TriangleApp::CreateSyncObjects()
+{
+	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+	renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+	inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+	imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
+
+	VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkFenceCreateInfo fenceCreateInfo = {};
+	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+			vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+			vkCreateFence(logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i])) {
+			throw std::runtime_error("Failed to create synchronization objects!");
+		}
+	}
 }
 
 #pragma endregion
@@ -888,6 +975,15 @@ void TriangleApp::CreateRenderPass()
 	subpassDescription.colorAttachmentCount = 1;
 	subpassDescription.pColorAttachments = &colorAttachmentReference;
 	
+	//Setup Subpass Dependencies
+	VkSubpassDependency dependency = {};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 	//Setup Create Info
 	VkRenderPassCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -895,6 +991,8 @@ void TriangleApp::CreateRenderPass()
 	createInfo.pAttachments = &colorAttachment;
 	createInfo.subpassCount = 1;
 	createInfo.pSubpasses = &subpassDescription;
+	createInfo.dependencyCount = 1;
+	createInfo.pDependencies = &dependency;
 
 	//Create Render Pass
 	if (vkCreateRenderPass(logicalDevice, &createInfo, nullptr, &renderPass) != VK_SUCCESS) {
@@ -945,7 +1043,7 @@ void TriangleApp::CreateCommandBuffers()
 	allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocateInfo.commandPool = commandPool;
 	allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocateInfo.commandBufferCount = (int32_t)commandBuffers.size();
+	allocateInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
 	if (vkAllocateCommandBuffers(logicalDevice, &allocateInfo, commandBuffers.data()) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate Command Buffers");
@@ -966,9 +1064,10 @@ void TriangleApp::CreateCommandBuffers()
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.extent = swapChainExtent;
 		renderPassBeginInfo.framebuffer = swapChainFrameBuffers[i];
-		
+		renderPassBeginInfo.renderArea.extent = swapChainExtent;
+		renderPassBeginInfo.renderArea.offset = { 0, 0 };
+
 		VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 		renderPassBeginInfo.clearValueCount = 1;
 		renderPassBeginInfo.pClearValues = &clearColor;
