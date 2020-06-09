@@ -106,6 +106,9 @@ void TriangleApp::InitVulkan()
 
 void TriangleApp::Cleanup()
 {
+	//Destroy the graphics pipeline
+	vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
+
 	//Destroy the Pipeline Layout
 	vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
 
@@ -771,9 +774,33 @@ void TriangleApp::CreateGraphicsPipeline()
 	pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 	pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
-	//Create the pipeline
+	//Create the pipeline layout
 	if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create Graphics Pipeline Layout!");
+	}
+
+	//Setup graphics pipeline create info
+	VkGraphicsPipelineCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	createInfo.stageCount = 2;
+	createInfo.pStages = shaderStages;
+	createInfo.pVertexInputState = &vertexInputCreateInfo;
+	createInfo.pInputAssemblyState = &inputAssemblyCreateInfo;
+	createInfo.pViewportState = &viewportStateCreateInfo;
+	createInfo.pRasterizationState = &rasterizerCreateInfo;
+	createInfo.pMultisampleState = &multisampleCreateInfo;
+	createInfo.pDepthStencilState = nullptr;
+	createInfo.pColorBlendState = &colorBlendCreateInfo;
+	createInfo.pDynamicState = &dynamicStateCreateInfo;
+	createInfo.layout = pipelineLayout;
+	createInfo.renderPass = renderPass;
+	createInfo.subpass = 0;
+	createInfo.basePipelineHandle = VK_NULL_HANDLE;
+	createInfo.basePipelineIndex = -1;
+
+	//Create graphics pipeline
+	if (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &createInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create Graphics Pipeline!");
 	}
 
 	//Cleanup shader modules

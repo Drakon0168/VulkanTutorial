@@ -38,6 +38,7 @@ private:
 	VkDevice logicalDevice;
 	VkRenderPass renderPass;
 	VkPipelineLayout pipelineLayout;
+	VkPipeline graphicsPipeline;
 
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
