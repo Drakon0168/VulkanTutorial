@@ -40,6 +40,9 @@ private:
 	VkPipelineLayout pipelineLayout;
 	VkPipeline graphicsPipeline;
 
+	VkCommandPool commandPool;
+	std::vector<VkCommandBuffer> commandBuffers;
+
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 
@@ -118,6 +121,11 @@ private:
 	void CreateRenderPass();
 	//Creates the Vulkan shader from the shader data
 	VkShaderModule CreateShaderModule(const std::vector<char>& code);
+
+	//Creates the Command Pool
+	void CreateCommandPool();
+	//Creates the Command Buffers
+	void CreateCommandBuffers();
 
 	//Setup the debug util messenger
 	void SetupDebugMessenger();

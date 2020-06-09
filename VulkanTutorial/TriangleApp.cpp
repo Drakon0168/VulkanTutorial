@@ -105,10 +105,19 @@ void TriangleApp::InitVulkan()
 
 	//Create the frame buffers
 	CreateFrameBuffers();
+
+	//Create the command pool
+	CreateCommandPool();
+
+	//Create the Command Buffers
+	CreateCommandBuffers();
 }
 
 void TriangleApp::Cleanup()
 {
+	//Destroy Command Pool
+	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+
 	//Destroy Frame Buffers
 	for (auto frameBuffer : swapChainFrameBuffers) {
 		vkDestroyFramebuffer(logicalDevice, frameBuffer, nullptr);
@@ -892,6 +901,73 @@ VkShaderModule TriangleApp::CreateShaderModule(const std::vector<char>& code)
 	}
 
 	return shaderModule;
+}
+
+#pragma endregion
+
+#pragma region Command Buffer Management
+
+void TriangleApp::CreateCommandPool()
+{
+	//Find Queue families
+	QueueFamilyIndices queueFamilies = FindQueueFamilies(physicalDevice);
+
+	//Setup Command Pool
+	VkCommandPoolCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	createInfo.queueFamilyIndex = queueFamilies.graphicsFamily.value();
+	createInfo.flags = 0;
+
+	if (vkCreateCommandPool(logicalDevice, &createInfo, nullptr, &commandPool) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create Command Pool!");
+	}
+}
+
+void TriangleApp::CreateCommandBuffers()
+{
+	commandBuffers.resize(swapChainFrameBuffers.size());
+
+	VkCommandBufferAllocateInfo allocateInfo = {};
+	allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocateInfo.commandPool = commandPool;
+	allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocateInfo.commandBufferCount = (int32_t)commandBuffers.size();
+
+	if (vkAllocateCommandBuffers(logicalDevice, &allocateInfo, commandBuffers.data()) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate Command Buffers");
+	}
+
+	for (size_t i = 0; i < commandBuffers.size(); i++) {
+		//Setup command
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = 0;
+		beginInfo.pInheritanceInfo = nullptr;
+
+		if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to begin recording Command Buffer!");
+		}
+
+		//Setup render pass
+		VkRenderPassBeginInfo renderPassBeginInfo = {};
+		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.extent = swapChainExtent;
+		
+		VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+		renderPassBeginInfo.clearValueCount = 1;
+		renderPassBeginInfo.pClearValues = &clearColor;
+
+		//Setup commands
+		vkCmdBeginRenderPass(commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+		vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+		vkCmdEndRenderPass(commandBuffers[i]);
+
+		if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to end Command Buffer!");
+		}
+	}
 }
 
 #pragma endregion
