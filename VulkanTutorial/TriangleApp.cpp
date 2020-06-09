@@ -125,30 +125,11 @@ void TriangleApp::Cleanup()
 		vkDestroyFence(logicalDevice, inFlightFences[i], nullptr);
 	}
 	
+	//Cleanup swap chain and associated resources
+	CleanupSwapChain();
+	
 	//Destroy Command Pool
 	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
-
-	//Destroy Frame Buffers
-	for (auto frameBuffer : swapChainFrameBuffers) {
-		vkDestroyFramebuffer(logicalDevice, frameBuffer, nullptr);
-	}
-
-	//Destroy the graphics pipeline
-	vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
-
-	//Destroy the Pipeline Layout
-	vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
-
-	//Destroy Render Pass
-	vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
-
-	//Destroy Image Views
-	for (VkImageView view : swapChainImageView) {
-		vkDestroyImageView(logicalDevice, view, nullptr);
-	}
-
-	//Destroy Swap Chain
-	vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
 
 	//Destroy Logical Device
 	vkDestroyDevice(logicalDevice, nullptr);
@@ -192,11 +173,18 @@ void TriangleApp::DrawFrame()
 {
 	//Wait for the fence to finish
 	vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-	vkResetFences(logicalDevice, 1, &inFlightFences[currentFrame]);
 
 	//Find the index of the next image
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(logicalDevice, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+	VkResult result = vkAcquireNextImageKHR(logicalDevice, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+		RecreateSwapChain();
+		return;
+	}
+	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+		throw std::runtime_error("Failed to aquire next swap chain image!");
+	}
 
 	//Make sure the image is not already in use
 	if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
@@ -223,6 +211,9 @@ void TriangleApp::DrawFrame()
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
+	//Reset fence
+	vkResetFences(logicalDevice, 1, &inFlightFences[currentFrame]);
+
 	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to submit draw command buffer!");
 	}
@@ -239,7 +230,14 @@ void TriangleApp::DrawFrame()
 	presentInfo.pImageIndices = &imageIndex;
 	presentInfo.pResults = nullptr;
 
-	vkQueuePresentKHR(presentQueue, &presentInfo);
+	result = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+	if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
+		RecreateSwapChain();
+	}
+	else if (result != VK_SUCCESS) {
+		throw std::runtime_error("Failed to present swap chain image!");
+	}
 
 	//Update the current frame
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
@@ -663,6 +661,51 @@ void TriangleApp::CreateSwapChain()
 	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, swapChainImages.data());
 }
 
+void TriangleApp::RecreateSwapChain()
+{
+	//Wait for the device to finish any current processes
+	vkDeviceWaitIdle(logicalDevice);
+
+	//Cleanup resources
+	CleanupSwapChain();
+
+	//Recreate swap chain
+	CreateSwapChain();
+	CreateImageViews();
+	CreateRenderPass();
+	CreateGraphicsPipeline();
+	CreateFrameBuffers();
+	CreateCommandBuffers();
+}
+
+void TriangleApp::CleanupSwapChain()
+{
+	//Destroy Frame Buffers
+	for (auto frameBuffer : swapChainFrameBuffers) {
+		vkDestroyFramebuffer(logicalDevice, frameBuffer, nullptr);
+	}
+
+	//Free Command Buffers
+	vkFreeCommandBuffers(logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+
+	//Destroy the graphics pipeline
+	vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
+
+	//Destroy the Pipeline Layout
+	vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
+
+	//Destroy Render Pass
+	vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
+
+	//Destroy Image Views
+	for (VkImageView view : swapChainImageView) {
+		vkDestroyImageView(logicalDevice, view, nullptr);
+	}
+
+	//Destroy Swap Chain
+	vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
+}
+
 void TriangleApp::CreateImageViews()
 {
 	swapChainImageView.resize(swapChainImages.size());
@@ -774,7 +817,14 @@ VkExtent2D TriangleApp::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& surface
 {
 	//If possible pick a resolution that best matches the window within the min and max bounds
 	if (surfaceCapabilities.currentExtent.width == UINT32_MAX) {
-		VkExtent2D actualExtent = { WINDOW_WIDTH, WINDOW_HEIGHT };
+		int width, height;
+		glfwGetFramebufferSize(window, &width, &height);
+
+		VkExtent2D actualExtent = { 
+			static_cast<uint32_t>(width), 
+			static_cast<uint32_t>(height)
+		};
+
 		actualExtent.width = std::max(surfaceCapabilities.minImageExtent.width, std::min(surfaceCapabilities.maxImageExtent.width, actualExtent.width));
 		actualExtent.height = std::max(surfaceCapabilities.minImageExtent.height, std::min(surfaceCapabilities.maxImageExtent.height, actualExtent.height));
 		return actualExtent;

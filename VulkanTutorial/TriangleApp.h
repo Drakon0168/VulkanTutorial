@@ -114,6 +114,10 @@ private:
 
 	//Creates the swap chain
 	void CreateSwapChain();
+	//Recreates the swap chain if variables such as window size have changed
+	void RecreateSwapChain();
+	//Cleanup swap chain resources when the swap chain is recreated
+	void CleanupSwapChain();
 	//Creates the image views to be used by the swap chain
 	void CreateImageViews();
 	//Creates the frame buffers to be used by the swap chain
