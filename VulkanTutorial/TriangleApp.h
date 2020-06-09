@@ -77,6 +77,8 @@ private:
 	void Cleanup();
 	//Called every frame and used to update objects on the screen
 	void MainLoop();
+	//Draws all of the objects to the screen
+	void DrawFrame();
 
 	//Initialize the Vulkan application
 	void CreateInstance();

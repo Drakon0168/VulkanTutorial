@@ -172,7 +172,13 @@ void TriangleApp::MainLoop()
 	//Loop until the window is closed
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
+		DrawFrame();
 	}
+}
+
+void TriangleApp::DrawFrame()
+{
+
 }
 
 #pragma endregion
@@ -562,6 +568,12 @@ void TriangleApp::CreateSwapChain()
 	if (vkCreateSwapchainKHR(logicalDevice, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create swap chain!");
 	}
+
+	//Setup swap chain images vector
+	imageCount = 0;
+	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, nullptr);
+	swapChainImages.resize(imageCount);
+	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, swapChainImages.data());
 }
 
 void TriangleApp::CreateImageViews()
@@ -798,6 +810,7 @@ void TriangleApp::CreateGraphicsPipeline()
 	colorBlendCreateInfo.blendConstants[2] = 0.0f;
 	colorBlendCreateInfo.blendConstants[3] = 0.0f;
 
+	/*
 	//Setup Dynamic states
 	VkDynamicState dynamicStates[] = {
 		VK_DYNAMIC_STATE_VIEWPORT,
@@ -808,6 +821,7 @@ void TriangleApp::CreateGraphicsPipeline()
 	dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 	dynamicStateCreateInfo.dynamicStateCount = 2;
 	dynamicStateCreateInfo.pDynamicStates = dynamicStates;
+	*/
 
 	//Setup Pipeline Layout
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
@@ -834,7 +848,7 @@ void TriangleApp::CreateGraphicsPipeline()
 	createInfo.pMultisampleState = &multisampleCreateInfo;
 	createInfo.pDepthStencilState = nullptr;
 	createInfo.pColorBlendState = &colorBlendCreateInfo;
-	createInfo.pDynamicState = &dynamicStateCreateInfo;
+	createInfo.pDynamicState = nullptr;
 	createInfo.layout = pipelineLayout;
 	createInfo.renderPass = renderPass;
 	createInfo.subpass = 0;
@@ -953,6 +967,7 @@ void TriangleApp::CreateCommandBuffers()
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.extent = swapChainExtent;
+		renderPassBeginInfo.framebuffer = swapChainFrameBuffers[i];
 		
 		VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 		renderPassBeginInfo.clearValueCount = 1;
