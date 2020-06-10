@@ -943,7 +943,7 @@ void TriangleApp::CreateGraphicsPipeline()
 	colorBlendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 	colorBlendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 	colorBlendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
-
+	
 	VkPipelineColorBlendStateCreateInfo colorBlendCreateInfo = {};
 	colorBlendCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	colorBlendCreateInfo.logicOpEnable = VK_FALSE;
