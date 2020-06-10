@@ -46,6 +46,7 @@ private:
 	std::vector<VkFence> inFlightFences;
 	std::vector<VkFence> imagesInFlight;
 	size_t currentFrame = 0;
+	bool frameBufferResized = false;
 
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
@@ -149,7 +150,6 @@ private:
 	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 	//Checks that all requested validation layers are supported
 	bool CheckValidationLayerSupport();
-
 	//The method that is called when Vulkan throws an error
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -158,5 +158,8 @@ private:
 		void* pUserData
 		);
 
+	//Called when the GLFW window is resized
+	static void FrameBufferResizeCallback(GLFWwindow* window, int width, int height);
+	//Reads in a file and saves it to a char list
 	static std::vector<char> ReadFile(const std::string& filePath);
 };

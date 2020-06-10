@@ -67,11 +67,12 @@ void TriangleApp::InitWindow()
 	//Prevent GLFW from loading OpenGL
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-	//Prevent the window from being resized
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
 	//Create the window
 	window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Vulkan Window", nullptr, nullptr);
+
+	//Setup the frame buffer resized callback
+	glfwSetWindowUserPointer(window, this);
+	glfwSetFramebufferSizeCallback(window, FrameBufferResizeCallback);
 }
 
 void TriangleApp::InitVulkan()
@@ -234,6 +235,7 @@ void TriangleApp::DrawFrame()
 
 	if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
 		RecreateSwapChain();
+		frameBufferResized = false;
 	}
 	else if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to present swap chain image!");
@@ -663,6 +665,12 @@ void TriangleApp::CreateSwapChain()
 
 void TriangleApp::RecreateSwapChain()
 {
+	int width = 0, height = 0;
+	while (width == 0 || height == 0) {
+		glfwGetFramebufferSize(window, &width, &height);
+		glfwWaitEvents();
+	}
+
 	//Wait for the device to finish any current processes
 	vkDeviceWaitIdle(logicalDevice);
 
@@ -1234,6 +1242,12 @@ VKAPI_ATTR VkBool32 VKAPI_CALL TriangleApp::DebugCallback(VkDebugUtilsMessageSev
 #pragma endregion
 
 #pragma region Helper Functions
+
+void TriangleApp::FrameBufferResizeCallback(GLFWwindow* window, int width, int height)
+{
+	auto app = reinterpret_cast<TriangleApp*>(glfwGetWindowUserPointer(window));
+	app->frameBufferResized = true;
+}
 
 std::vector<char> TriangleApp::ReadFile(const std::string& filePath)
 {
