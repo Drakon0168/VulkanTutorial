@@ -49,7 +49,7 @@ void Transform::SetOrientation(glm::quat value)
 void Transform::SetOrientation(glm::vec3 value, bool degrees)
 {
 	if (degrees) {
-		value *= DEGTORAD;
+		value = glm::vec3(glm::radians(value.x), glm::radians(value.y), glm::radians(value.z));
 	}
 
 	orientation = glm::quat(value);
@@ -111,7 +111,7 @@ void Transform::Rotate(glm::vec3 eulerRotation, bool degrees)
 {
 	//If the rotation is in degrees convert to radians for glm to work with it
 	if (degrees) {
-		eulerRotation *= DEGTORAD;
+		eulerRotation = glm::vec3(glm::radians(eulerRotation.x), glm::radians(eulerRotation.y), glm::radians(eulerRotation.z));
 	}
 
 	//Rotate the orientation

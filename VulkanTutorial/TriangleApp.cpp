@@ -2,6 +2,7 @@
 #include "TriangleApp.h"
 
 float TriangleApp::deltaTime = 0.0f;
+float TriangleApp::totalTime = 0.0f;
 
 #pragma region Proxy Functions
 
@@ -54,6 +55,9 @@ void TriangleApp::Run()
 	//TODO: Remove this once meshes are generated in an init function or loaded from models
 	mesh.GeneratePlane();
 
+	//Set starting camera values
+	camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, -5.0f), glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)), true);
+	
 	InitVulkan();
 
 	if (enableValidationLayers) {
@@ -209,11 +213,22 @@ void TriangleApp::MainLoop()
 		currentTime = std::chrono::high_resolution_clock::now();
 		deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastTime).count();
 		lastTime = currentTime;
+		totalTime += deltaTime;
 
+		Update();
 		DrawFrame();
 	}
 
 	vkDeviceWaitIdle(logicalDevice);
+}
+
+void TriangleApp::Update()
+{
+	//camera->GetTransform()->Rotate(glm::vec3(0.0f, 90.0f, 0.0f) * deltaTime);
+
+	std::shared_ptr<Transform> transform = mesh.GetTransform();
+	transform->SetPosition(glm::vec3(0.0f/*cosf(totalTime)*/, sinf(totalTime), 0.0f));
+	transform->Rotate(glm::vec3(0.0f, 0.0f, 1.0f) * -90.0f * deltaTime);
 }
 
 void TriangleApp::DrawFrame()
@@ -710,6 +725,9 @@ void TriangleApp::CreateSwapChain()
 	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, nullptr);
 	swapChainImages.resize(imageCount);
 	vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, swapChainImages.data());
+
+	//Update aspect ratio
+	camera->SetAspectRatio(swapChainExtent.width / (float)swapChainExtent.height);
 }
 
 void TriangleApp::RecreateSwapChain()
@@ -981,7 +999,7 @@ void TriangleApp::CreateGraphicsPipeline()
 	rasterizerCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizerCreateInfo.lineWidth = 1.0f;
 	rasterizerCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizerCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterizerCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
 	rasterizerCreateInfo.depthBiasEnable = VK_FALSE;
 	rasterizerCreateInfo.depthBiasConstantFactor = 0.0f;
 	rasterizerCreateInfo.depthBiasClamp = 0.0f;
@@ -1279,16 +1297,11 @@ void TriangleApp::CreateUniformBuffers()
 
 void TriangleApp::UpdateUniformBuffers(uint32_t currentImage)
 {
-	std::shared_ptr<Transform> transform = mesh.GetTransform();
-	transform->Rotate(glm::vec3(0.0f, 10.0f, 0.0f) * deltaTime);
-	transform->SetScale(glm::vec3(2.0f, 2.0f, 2.0f));
-
 	//Setup the model view and projection matrices
 	UniformBufferObject ubo = {};
-	ubo.model = transform->GetModelMatrix();
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.projection = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
-	ubo.projection[1][1] *= -1; //Correct for flipped y-axis from OpenGL
+	ubo.model = mesh.GetTransform()->GetModelMatrix();
+	ubo.view = camera->GetView();
+	ubo.projection = camera->GetProjection();
 
 	void* data;
 	vkMapMemory(logicalDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);

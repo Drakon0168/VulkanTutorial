@@ -28,8 +28,4 @@
 #include <array>
 #include <optional>
 
-#define PI 3.14159265359
-#define DEGTORAD PI/180.0f
-#define RADTODEG 180.0f/PI
-
 #endif //PCH_H

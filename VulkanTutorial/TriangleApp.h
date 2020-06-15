@@ -4,6 +4,7 @@
 #include "Vertex.h"
 #include "UniformBufferObject.h"
 #include "Mesh.h"
+#include "Camera.h"
 
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
@@ -34,7 +35,9 @@ private:
 	std::chrono::steady_clock::time_point currentTime;
 	std::chrono::steady_clock::time_point lastTime;
 	static float deltaTime;
+	static float totalTime;
 
+	std::shared_ptr<Camera> camera;
 	Mesh mesh;
 
 	GLFWwindow* window;
@@ -105,6 +108,8 @@ private:
 
 	//Called every frame and used to update objects on the screen
 	void MainLoop();
+	//Called every update loop
+	void Update();
 	//Draws all of the objects to the screen
 	void DrawFrame();
 	//Creates the semaphores to manage async frame rendering
