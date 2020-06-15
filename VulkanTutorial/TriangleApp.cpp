@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "TriangleApp.h"
 
+float TriangleApp::deltaTime = 0.0f;
+
 #pragma region Proxy Functions
 
 //Create the Debug Utils Messenger from the Create Info that is set up in SetupDebugCallback()
@@ -48,6 +50,9 @@ void TriangleApp::Run()
 	if (enableValidationLayers) {
 		std::cout << "Setting up Vulkan . . ." << std::endl;
 	}
+
+	//TODO: Remove this once meshes are generated in an init function or loaded from models
+	mesh.GeneratePlane();
 
 	InitVulkan();
 
@@ -101,6 +106,9 @@ void TriangleApp::InitVulkan()
 	//Create the render pass
 	CreateRenderPass();
 
+	//Create the descriptor set layout
+	CreateDescriptorSetLayout();
+
 	//Create the graphics pipeline
 	CreateGraphicsPipeline();
 
@@ -109,6 +117,21 @@ void TriangleApp::InitVulkan()
 
 	//Create the command pool
 	CreateCommandPool();
+
+	//Create the Vertex Buffer
+	CreateVertexBuffer();
+
+	//Create the Index Buffer
+	CreateIndexBuffer();
+
+	//Create Uniform Buffers
+	CreateUniformBuffers();
+
+	//Create the descriptor pool
+	CreateDescriptorPool();
+
+	//Create the descriptor sets
+	CreateDescriptorSets();
 
 	//Create the Command Buffers
 	CreateCommandBuffers();
@@ -128,7 +151,22 @@ void TriangleApp::Cleanup()
 	
 	//Cleanup swap chain and associated resources
 	CleanupSwapChain();
+
+	//Destroy Descriptor Set Layout
+	vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
+
+	//Destroy Vertex Buffer
+	vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);
 	
+	//Free vertex buffer memory
+	vkFreeMemory(logicalDevice, vertexBufferMemory, nullptr);
+
+	//Destroy Index Buffer
+	vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
+
+	//Free index buffer memory
+	vkFreeMemory(logicalDevice, indexBufferMemory, nullptr);
+
 	//Destroy Command Pool
 	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 
@@ -140,13 +178,13 @@ void TriangleApp::Cleanup()
 		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 	}
 
-	//Destroy the surface
+	//Destroy Surface
 	vkDestroySurfaceKHR(instance, surface, nullptr);
 
-	//Cleanup Vulkan resources
+	//Destroy Vulkan resources
 	vkDestroyInstance(instance, nullptr);
 
-	//Cleanup GLFW resources
+	//Destroy GLFW resources
 	glfwDestroyWindow(window);
 
 	//Terminate the window
@@ -159,11 +197,19 @@ void TriangleApp::Cleanup()
 
 void TriangleApp::MainLoop()
 {
-	auto test = matrix * vec;
+	//Set starting time values
+	currentTime = std::chrono::high_resolution_clock::now();
+	lastTime = std::chrono::high_resolution_clock::now();
 
 	//Loop until the window is closed
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
+
+		//Calculate time change per frame
+		currentTime = std::chrono::high_resolution_clock::now();
+		deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastTime).count();
+		lastTime = currentTime;
+
 		DrawFrame();
 	}
 
@@ -194,6 +240,9 @@ void TriangleApp::DrawFrame()
 
 	//Mark the image as being in use
 	imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+
+	//Update uniform buffers
+	UpdateUniformBuffers(imageIndex);
 
 	//Submit to the graphics queue
 	VkSubmitInfo submitInfo = {};
@@ -683,6 +732,9 @@ void TriangleApp::RecreateSwapChain()
 	CreateRenderPass();
 	CreateGraphicsPipeline();
 	CreateFrameBuffers();
+	CreateUniformBuffers();
+	CreateDescriptorPool();
+	CreateDescriptorSets();
 	CreateCommandBuffers();
 }
 
@@ -712,6 +764,15 @@ void TriangleApp::CleanupSwapChain()
 
 	//Destroy Swap Chain
 	vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
+
+	//Destroy Uniform Buffers
+	for (size_t i = 0; i < swapChainImages.size(); i++) {
+		vkDestroyBuffer(logicalDevice, uniformBuffers[i], nullptr);
+		vkFreeMemory(logicalDevice, uniformBuffersMemory[i], nullptr);
+	}
+
+	//Destroy Descriptor Pool
+	vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 }
 
 void TriangleApp::CreateImageViews()
@@ -874,12 +935,15 @@ void TriangleApp::CreateGraphicsPipeline()
 	};
 
 	//Setup the Vertex input
+	std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = Vertex::getAttributeDescriptions();
+	VkVertexInputBindingDescription bindingDescription = Vertex::getBindingDescription();
+
 	VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
 	vertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertexInputCreateInfo.vertexAttributeDescriptionCount = 0;
-	vertexInputCreateInfo.pVertexAttributeDescriptions = nullptr;
-	vertexInputCreateInfo.vertexBindingDescriptionCount = 0;
-	vertexInputCreateInfo.pVertexBindingDescriptions = nullptr;
+	vertexInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+	vertexInputCreateInfo.pVertexAttributeDescriptions = Vertex::getAttributeDescriptions().data();
+	vertexInputCreateInfo.vertexBindingDescriptionCount = 1;
+	vertexInputCreateInfo.pVertexBindingDescriptions = &bindingDescription;
 
 	//Setup the Input Assembly
 	VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo = {};
@@ -917,7 +981,7 @@ void TriangleApp::CreateGraphicsPipeline()
 	rasterizerCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizerCreateInfo.lineWidth = 1.0f;
 	rasterizerCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizerCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizerCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizerCreateInfo.depthBiasEnable = VK_FALSE;
 	rasterizerCreateInfo.depthBiasConstantFactor = 0.0f;
 	rasterizerCreateInfo.depthBiasClamp = 0.0f;
@@ -971,8 +1035,8 @@ void TriangleApp::CreateGraphicsPipeline()
 	//Setup Pipeline Layout
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutCreateInfo.setLayoutCount = 0;
-	pipelineLayoutCreateInfo.pSetLayouts = nullptr;
+	pipelineLayoutCreateInfo.setLayoutCount = 1;
+	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
 	pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 	pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
@@ -1008,6 +1072,78 @@ void TriangleApp::CreateGraphicsPipeline()
 	//Cleanup shader modules
 	vkDestroyShaderModule(logicalDevice, vertexShaderModule, nullptr);
 	vkDestroyShaderModule(logicalDevice, fragmentShaderModule, nullptr);
+}
+
+void TriangleApp::CreateDescriptorSetLayout()
+{
+	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+	uboLayoutBinding.binding = 0;
+	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboLayoutBinding.descriptorCount = 1;
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	uboLayoutBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	createInfo.bindingCount = 1;
+	createInfo.pBindings = &uboLayoutBinding;
+
+	if (vkCreateDescriptorSetLayout(logicalDevice, &createInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create descriptor set layout");
+	}
+}
+
+void TriangleApp::CreateDescriptorPool()
+{
+	VkDescriptorPoolSize poolSize = {};
+	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSize.descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+
+	VkDescriptorPoolCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	createInfo.poolSizeCount = 1;
+	createInfo.pPoolSizes = &poolSize;
+	createInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
+
+	if (vkCreateDescriptorPool(logicalDevice, &createInfo, nullptr, &descriptorPool)) {
+		throw std::runtime_error("Failed to create Descriptor Pool!");
+	}
+}
+
+void TriangleApp::CreateDescriptorSets()
+{
+	std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(), descriptorSetLayout);
+	VkDescriptorSetAllocateInfo allocateInfo = {};
+	allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocateInfo.descriptorPool = descriptorPool;
+	allocateInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
+	allocateInfo.pSetLayouts = layouts.data();
+
+	descriptorSets.resize(swapChainImages.size());
+
+	if (vkAllocateDescriptorSets(logicalDevice, &allocateInfo, descriptorSets.data()) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate Descriptor Sets!");
+	}
+
+	for (size_t i = 0; i < swapChainImages.size(); i++) {
+		VkDescriptorBufferInfo bufferInfo = {};
+		bufferInfo.buffer = uniformBuffers[i];
+		bufferInfo.offset = 0;
+		bufferInfo.range = sizeof(UniformBufferObject);
+
+		VkWriteDescriptorSet descriptorWrite = {};
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = descriptorSets[i];
+		descriptorWrite.dstBinding = 0;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pBufferInfo = &bufferInfo;
+		descriptorWrite.pImageInfo = nullptr;
+		descriptorWrite.pTexelBufferView = nullptr;
+
+		vkUpdateDescriptorSets(logicalDevice, 1, &descriptorWrite, 0, nullptr);
+	}
 }
 
 void TriangleApp::CreateRenderPass()
@@ -1075,6 +1211,107 @@ VkShaderModule TriangleApp::CreateShaderModule(const std::vector<char>& code)
 
 #pragma endregion
 
+#pragma region Mesh Management
+
+void TriangleApp::CreateVertexBuffer()
+{
+	//Create the staging buffer
+	VkDeviceSize bufferSize = sizeof(mesh.GetVertices()[0]) * mesh.GetVertices().size();
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+
+	CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+	//Map vertex data to the buffer
+	void* data;
+	vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, mesh.GetVertices().data(), bufferSize);
+	vkUnmapMemory(logicalDevice, stagingBufferMemory);
+
+	//Create the vertex buffer
+	CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+
+	//Copy buffer data
+	CopyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+	//Cleanup staging buffer
+	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+}
+
+void TriangleApp::CreateIndexBuffer()
+{
+	//Create the staging buffer
+	VkDeviceSize bufferSize = sizeof(mesh.GetIndices()[0]) * mesh.GetIndices().size();
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+
+	CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+	//Map index data to the buffer
+	void* data;
+	vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, mesh.GetIndices().data(), bufferSize);
+	vkUnmapMemory(logicalDevice, stagingBufferMemory);
+
+	//Create the index buffer
+	CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+
+	//Copy buffer data
+	CopyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+	//Cleanup staging buffer
+	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+}
+
+void TriangleApp::CreateUniformBuffers()
+{
+	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
+	uniformBuffers.resize(swapChainImages.size());
+	uniformBuffersMemory.resize(swapChainImages.size());
+
+	for (uint32_t i = 0; i < swapChainImages.size(); i++) {
+		CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+	}
+}
+
+void TriangleApp::UpdateUniformBuffers(uint32_t currentImage)
+{
+	std::shared_ptr<Transform> transform = mesh.GetTransform();
+	transform->Rotate(glm::vec3(0.0f, 10.0f, 0.0f) * deltaTime);
+	transform->SetScale(glm::vec3(2.0f, 2.0f, 2.0f));
+
+	//Setup the model view and projection matrices
+	UniformBufferObject ubo = {};
+	ubo.model = transform->GetModelMatrix();
+	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.projection = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
+	ubo.projection[1][1] *= -1; //Correct for flipped y-axis from OpenGL
+
+	void* data;
+	vkMapMemory(logicalDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
+	memcpy(data, &ubo, sizeof(ubo));
+	vkUnmapMemory(logicalDevice, uniformBuffersMemory[currentImage]);
+}
+
+uint32_t TriangleApp::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties memoryProperties;
+	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+
+	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++) {
+		if ((typeFilter & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+			return i;
+		}
+	}
+
+	throw std::exception("Failed to find suitable memory type!");
+}
+
+#pragma endregion
+
 #pragma region Command Buffer Management
 
 void TriangleApp::CreateCommandPool()
@@ -1133,7 +1370,17 @@ void TriangleApp::CreateCommandBuffers()
 		//Setup commands
 		vkCmdBeginRenderPass(commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-		vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+
+		VkBuffer vertexBuffers[] = { vertexBuffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+
+		VkBuffer indexBuffers[] = { indexBuffer };
+		vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+
+		vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(mesh.GetIndices().size()), 1, 0, 0, 0);
 		vkCmdEndRenderPass(commandBuffers[i]);
 
 		if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
@@ -1268,6 +1515,81 @@ std::vector<char> TriangleApp::ReadFile(const std::string& filePath)
 	//Close the file and return
 	file.close();
 	return buffer;
+}
+
+void TriangleApp::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+{
+	//Setup Create Info
+	VkBufferCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	createInfo.size = size;
+	createInfo.usage = usage;
+	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	//Create Buffer
+	if (vkCreateBuffer(logicalDevice, &createInfo, nullptr, &buffer) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create Buffer!");
+	}
+
+	//Find memory requirements
+	VkMemoryRequirements memoryRequirements;
+	vkGetBufferMemoryRequirements(logicalDevice, buffer, &memoryRequirements);
+
+	//Setup Vertex Buffer memory allocate info
+	VkMemoryAllocateInfo allocateInfo = {};
+	allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocateInfo.allocationSize = memoryRequirements.size;
+	allocateInfo.memoryTypeIndex = findMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	//Allocate memory
+	if (vkAllocateMemory(logicalDevice, &allocateInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate Buffer memory!");
+	}
+
+	//Bind buffer memory
+	vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
+}
+
+void TriangleApp::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+{
+	//Setup allocate info
+	VkCommandBufferAllocateInfo allocateInfo = {};
+	allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocateInfo.commandPool = commandPool;
+	allocateInfo.commandBufferCount = 1;
+	allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+	//Allocate command buffer
+	VkCommandBuffer commandBuffer;
+	vkAllocateCommandBuffers(logicalDevice, &allocateInfo, &commandBuffer);
+
+	//Record command buffer
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+	//Copy the buffer
+	VkBufferCopy copyRegion = {};
+	copyRegion.srcOffset = 0;
+	copyRegion.dstOffset = 0;
+	copyRegion.size = size;
+	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+	vkEndCommandBuffer(commandBuffer);
+
+	//Execute the command buffer
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(graphicsQueue);
+
+	//Cleanup command buffer
+	vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
 }
 
 #pragma endregion

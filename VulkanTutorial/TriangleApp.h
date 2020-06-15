@@ -1,5 +1,9 @@
 #pragma once
+
 #include "pch.h"
+#include "Vertex.h"
+#include "UniformBufferObject.h"
+#include "Mesh.h"
 
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
@@ -27,9 +31,13 @@ private:
 	const int WINDOW_HEIGHT = 600;
 	const int MAX_FRAMES_IN_FLIGHT = 2;
 
+	std::chrono::steady_clock::time_point currentTime;
+	std::chrono::steady_clock::time_point lastTime;
+	static float deltaTime;
+
+	Mesh mesh;
+
 	GLFWwindow* window;
-	glm::mat4 matrix;
-	glm::vec4 vec;
 
 	VkInstance instance;
 	
@@ -38,6 +46,7 @@ private:
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice logicalDevice;
 	VkRenderPass renderPass;
+	VkDescriptorSetLayout descriptorSetLayout;
 	VkPipelineLayout pipelineLayout;
 	VkPipeline graphicsPipeline;
 
@@ -47,6 +56,16 @@ private:
 	std::vector<VkFence> imagesInFlight;
 	size_t currentFrame = 0;
 	bool frameBufferResized = false;
+
+	VkBuffer vertexBuffer;
+	VkDeviceMemory vertexBufferMemory;
+	VkBuffer indexBuffer;
+	VkDeviceMemory indexBufferMemory;
+	std::vector<VkBuffer> uniformBuffers;
+	std::vector<VkDeviceMemory> uniformBuffersMemory;
+
+	VkDescriptorPool descriptorPool;
+	std::vector<VkDescriptorSet> descriptorSets;
 
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
@@ -134,10 +153,27 @@ private:
 
 	//Creates the graphics pipeline
 	void CreateGraphicsPipeline();
+	//Create the descriptor set for the Uniform Buffer Object
+	void CreateDescriptorSetLayout();
+	//Creates the descriptor pool
+	void CreateDescriptorPool();
+	//Creates the descriptor sets
+	void CreateDescriptorSets();
 	//Creates the Render Pass
 	void CreateRenderPass();
 	//Creates the Vulkan shader from the shader data
 	VkShaderModule CreateShaderModule(const std::vector<char>& code);
+
+	//Creates the vertex buffer
+	void CreateVertexBuffer();
+	//Creates the index buffer
+	void CreateIndexBuffer();
+	//Creates the uniform buffer
+	void CreateUniformBuffers();
+	//Updates the uniform buffers
+	void UpdateUniformBuffers(uint32_t currentImage);
+	//Find the type of memory used by the GPU
+	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 	//Creates the Command Pool
 	void CreateCommandPool();
@@ -162,4 +198,8 @@ private:
 	static void FrameBufferResizeCallback(GLFWwindow* window, int width, int height);
 	//Reads in a file and saves it to a char list
 	static std::vector<char> ReadFile(const std::string& filePath);
+	//Creates a buffer based on the parameters
+	void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+	//Copies data from the source buffer to the destination buffer
+	void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 };
