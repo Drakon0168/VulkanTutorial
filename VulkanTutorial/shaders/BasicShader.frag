@@ -17,7 +17,7 @@ void main(){
 	vec3 finalColor = vec3(0.0f, 0.0f, 0.0f);
 
 	for(int i = 0; i < lightCount; i++){
-		vec3 lightDistance = vec3(abs(position.x - lights[i].position.x), abs(position.y - lights[i].position.y), abs(position.y - lights[i].position.y));
+		vec3 lightDistance = vec3(abs(position.x - lights[i].position.x), abs(position.y - lights[i].position.y), abs(position.z - lights[i].position.z));
 		float strength = length(lightDistance) / lights[i].range;
 		strength = 1.0f - clamp(strength, 0.0f, 1.0f);
 
