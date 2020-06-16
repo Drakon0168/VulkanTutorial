@@ -53,10 +53,11 @@ void TriangleApp::Run()
 	}
 
 	//TODO: Remove this once meshes are generated in an init function or loaded from models
-	mesh.GeneratePlane();
+	meshes.resize(1);
+	meshes[0].GeneratePlane();
 
 	//Set starting camera values
-	camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, -5.0f), glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)), true);
+	camera = std::make_shared<Camera>(glm::vec3(0.0f, 5.0f, -5.0f), glm::quat(glm::vec3(glm::radians(45.0f), 0.0f, 0.0f)), true);
 	
 	InitVulkan();
 
@@ -226,9 +227,9 @@ void TriangleApp::Update()
 {
 	//camera->GetTransform()->Rotate(glm::vec3(0.0f, 90.0f, 0.0f) * deltaTime);
 
-	std::shared_ptr<Transform> transform = mesh.GetTransform();
-	transform->SetPosition(glm::vec3(0.0f/*cosf(totalTime)*/, sinf(totalTime), 0.0f));
-	transform->Rotate(glm::vec3(0.0f, 0.0f, 1.0f) * -90.0f * deltaTime);
+	std::shared_ptr<Transform> transform = meshes[0].GetTransform();
+	//transform->SetPosition(glm::vec3(0.0f/*cosf(totalTime)*/, sinf(totalTime), 0.0f));
+	//transform->Rotate(glm::vec3(0.0f, 0.0f, 1.0f) * -90.0f * deltaTime);
 }
 
 void TriangleApp::DrawFrame()
@@ -953,7 +954,7 @@ void TriangleApp::CreateGraphicsPipeline()
 	};
 
 	//Setup the Vertex input
-	std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = Vertex::getAttributeDescriptions();
+	std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::getAttributeDescriptions();
 	VkVertexInputBindingDescription bindingDescription = Vertex::getBindingDescription();
 
 	VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
@@ -998,7 +999,7 @@ void TriangleApp::CreateGraphicsPipeline()
 	rasterizerCreateInfo.rasterizerDiscardEnable = VK_FALSE;
 	rasterizerCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizerCreateInfo.lineWidth = 1.0f;
-	rasterizerCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizerCreateInfo.cullMode = VK_CULL_MODE_NONE;
 	rasterizerCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
 	rasterizerCreateInfo.depthBiasEnable = VK_FALSE;
 	rasterizerCreateInfo.depthBiasConstantFactor = 0.0f;
@@ -1234,7 +1235,7 @@ VkShaderModule TriangleApp::CreateShaderModule(const std::vector<char>& code)
 void TriangleApp::CreateVertexBuffer()
 {
 	//Create the staging buffer
-	VkDeviceSize bufferSize = sizeof(mesh.GetVertices()[0]) * mesh.GetVertices().size();
+	VkDeviceSize bufferSize = sizeof(meshes[0].GetVertices()[0]) * meshes[0].GetVertices().size();
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
 
@@ -1243,7 +1244,7 @@ void TriangleApp::CreateVertexBuffer()
 	//Map vertex data to the buffer
 	void* data;
 	vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, mesh.GetVertices().data(), bufferSize);
+	memcpy(data, meshes[0].GetVertices().data(), bufferSize);
 	vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
 	//Create the vertex buffer
@@ -1260,7 +1261,7 @@ void TriangleApp::CreateVertexBuffer()
 void TriangleApp::CreateIndexBuffer()
 {
 	//Create the staging buffer
-	VkDeviceSize bufferSize = sizeof(mesh.GetIndices()[0]) * mesh.GetIndices().size();
+	VkDeviceSize bufferSize = sizeof(meshes[0].GetIndices()[0]) * meshes[0].GetIndices().size();
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
 
@@ -1269,7 +1270,7 @@ void TriangleApp::CreateIndexBuffer()
 	//Map index data to the buffer
 	void* data;
 	vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, mesh.GetIndices().data(), bufferSize);
+	memcpy(data, meshes[0].GetIndices().data(), bufferSize);
 	vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
 	//Create the index buffer
@@ -1299,7 +1300,7 @@ void TriangleApp::UpdateUniformBuffers(uint32_t currentImage)
 {
 	//Setup the model view and projection matrices
 	UniformBufferObject ubo = {};
-	ubo.model = mesh.GetTransform()->GetModelMatrix();
+	ubo.model = meshes[0].GetTransform()->GetModelMatrix();
 	ubo.view = camera->GetView();
 	ubo.projection = camera->GetProjection();
 
@@ -1393,7 +1394,7 @@ void TriangleApp::CreateCommandBuffers()
 
 		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-		vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(mesh.GetIndices().size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(meshes[0].GetIndices().size()), 1, 0, 0, 0);
 		vkCmdEndRenderPass(commandBuffers[i]);
 
 		if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {

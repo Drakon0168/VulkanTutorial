@@ -38,7 +38,7 @@ private:
 	static float totalTime;
 
 	std::shared_ptr<Camera> camera;
-	Mesh mesh;
+	std::vector<Mesh> meshes;
 
 	GLFWwindow* window;
 

@@ -12,6 +12,7 @@ Camera::Camera(glm::vec3 position, glm::quat orientation, bool perspective, floa
 
 	this->perspective = perspective;
 	this->FOV = FOV;
+	this->orthographicSize = orthographicSize;
 	this->aspectRatio = aspectRatio;
 	clippingPlanes = glm::vec2(nearPlane, farPlane);
 
@@ -142,7 +143,7 @@ void Camera::UpdateProjection()
 	}
 	else {
 		float width = orthographicSize * aspectRatio;
-		projection = glm::ortho(-width, width, -orthographicSize, orthographicSize, clippingPlanes.x, clippingPlanes.y);
+		projection = glm::ortho(-width, width, orthographicSize, -orthographicSize, clippingPlanes.x, clippingPlanes.y);
 	}
 
 	projection[1][1] *= -1; //Correct for flipped y-axis from OpenGL

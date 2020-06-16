@@ -24,7 +24,7 @@ public:
 		glm::quat orientation = glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)),
 		bool perspective = true,
 		float FOV = glm::radians(45.0f),
-		float orthographicSize = 5.0f,
+		float orthographicSize = 5.0,
 		float aspectRatio = 1.0f,
 		float nearPlane = 0.1f,
 		float farPlane = 100.0f);

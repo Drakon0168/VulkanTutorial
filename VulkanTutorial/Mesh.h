@@ -60,5 +60,10 @@ public:
 	/// </summary>
 	void GeneratePlane();
 
+	/// <summary>
+	/// Sets the vertices and indices to generate a cube
+	/// </summary>
+	void GenerateCube();
+
 #pragma endregion
 };
