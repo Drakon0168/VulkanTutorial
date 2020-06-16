@@ -17,6 +17,6 @@ layout(location = 1) out vec2 uv;
 void main(){
 	mat4 mvp = ubo.projection * ubo.view * ubo.model;
 	gl_Position = mvp * vec4(inPosition, 1.0f);
-	vertColor = inColor;
+	vertColor = vec3(1.0f, 1.0f, 1.0f);
 	uv = texCoord; 
 }

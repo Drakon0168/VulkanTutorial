@@ -120,7 +120,8 @@
       </Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>$(ProjectDir)\compile.bat</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -169,7 +170,8 @@
       </Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>$(ProjectDir)\compile.bat</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -190,13 +192,32 @@
     <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
+    <CustomBuild Include="compile.bat">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">call $(ProjectDir)\compile.bat</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Shaders</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\shaders\vert.spv;$(ProjectDir)\shaders\frag.spv;%(Outputs)</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">call $(ProjectDir)\compile.bat</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Shaders</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\shaders\vert.spv;$(ProjectDir)\shaders\frag.spv;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\shaders\BasicShader.vert;$(ProjectDir)\shaders\BasicShader.frag;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\shaders\BasicShader.vert;$(ProjectDir)\shaders\BasicShader.frag;%(AdditionalInputs)</AdditionalInputs>
+    </CustomBuild>
     <None Include="shaders\BasicShader.frag">
       <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\VulkanSDK\1.2.135.0\Bin\glslc.exe $(ProjectDir)\shaders\BasicShader.frag -o $(ProjectDir)\shaders\frag.spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\VulkanSDK\1.2.135.0\Bin\glslc.exe $(ProjectDir)\shaders\BasicShader.frag -o $(ProjectDir)\shaders\frag.spv</Command>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </None>
     <None Include="shaders\BasicShader.vert">
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\VulkanSDK\1.2.135.0\Bin\glslc.exe BasicShader.vert -o vert.spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\VulkanSDK\1.2.135.0\Bin\glslc.exe BasicShader.vert -o vert.spv</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Vertex Shader</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Vertex Shader</Message>
     </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
