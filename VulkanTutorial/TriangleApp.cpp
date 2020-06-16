@@ -228,8 +228,8 @@ void TriangleApp::Update()
 	//camera->GetTransform()->Rotate(glm::vec3(0.0f, 90.0f, 0.0f) * deltaTime);
 
 	std::shared_ptr<Transform> transform = meshes[0].GetTransform();
-	//transform->SetPosition(glm::vec3(0.0f/*cosf(totalTime)*/, sinf(totalTime), 0.0f));
-	//transform->Rotate(glm::vec3(0.0f, 0.0f, 1.0f) * -90.0f * deltaTime);
+	transform->SetPosition(glm::vec3(0.0f/*cosf(totalTime * 2.3)*/, 0.0f, sinf(totalTime) * 1.5f));
+	transform->Rotate(glm::vec3(0.0f, 0.0f, 1.0f) * -90.0f * deltaTime);
 }
 
 void TriangleApp::DrawFrame()
@@ -1095,17 +1095,19 @@ void TriangleApp::CreateGraphicsPipeline()
 
 void TriangleApp::CreateDescriptorSetLayout()
 {
-	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-	uboLayoutBinding.binding = 0;
-	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboLayoutBinding.descriptorCount = 1;
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	uboLayoutBinding.pImmutableSamplers = nullptr;
+	std::vector<VkDescriptorSetLayoutBinding> bindings(1);
+
+	bindings[0] = {};
+	bindings[0].binding = 0;
+	bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	bindings[0].descriptorCount = 1;
+	bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	bindings[0].pImmutableSamplers = nullptr;
 
 	VkDescriptorSetLayoutCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	createInfo.bindingCount = 1;
-	createInfo.pBindings = &uboLayoutBinding;
+	createInfo.pBindings = bindings.data();
 
 	if (vkCreateDescriptorSetLayout(logicalDevice, &createInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor set layout");
