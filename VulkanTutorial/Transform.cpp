@@ -118,6 +118,20 @@ void Transform::Rotate(glm::vec3 eulerRotation, bool degrees)
 	Rotate(glm::quat(eulerRotation));
 }
 
+void Transform::LookAt(glm::vec3 target, glm::vec3 up)
+{
+	//Find normalized direction
+	glm::vec3 direction = position - target;
+	float length = glm::distance(target, position);
+	direction /= length;
+
+	orientation = glm::quatLookAt(direction, up);
+}
+
+#pragma endregion
+
+#pragma region Model Matrix
+
 void Transform::GenerateModelMatrix()
 {
 	//Update the matrix

@@ -54,10 +54,11 @@ void TriangleApp::Run()
 
 	//TODO: Remove this once meshes are generated in an init function or loaded from models
 	meshes.resize(1);
-	meshes[0].GeneratePlane();
+	meshes[0].GenerateCube();
 
 	//Set starting camera values
 	camera = std::make_shared<Camera>(glm::vec3(0.0f, 5.0f, -5.0f), glm::quat(glm::vec3(glm::radians(45.0f), 0.0f, 0.0f)), true);
+	camera->GetTransform()->LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	
 	InitVulkan();
 
@@ -117,6 +118,9 @@ void TriangleApp::InitVulkan()
 	//Create the graphics pipeline
 	CreateGraphicsPipeline();
 
+	//Create Depth Buffer resources
+	CreateDepthResources();
+
 	//Create the frame buffers
 	CreateFrameBuffers();
 
@@ -140,6 +144,14 @@ void TriangleApp::InitVulkan()
 
 	//Create the Command Buffers
 	CreateCommandBuffers();
+
+	
+
+	//Create the texture image
+	CreateTextureImage();
+
+	//Create the texture's image view
+	CreateTextureImageView();
 
 	//Create the Semaphores and Fences
 	CreateSyncObjects();
@@ -228,8 +240,8 @@ void TriangleApp::Update()
 	//camera->GetTransform()->Rotate(glm::vec3(0.0f, 90.0f, 0.0f) * deltaTime);
 
 	std::shared_ptr<Transform> transform = meshes[0].GetTransform();
-	transform->SetPosition(glm::vec3(0.0f/*cosf(totalTime * 2.3)*/, 0.0f, sinf(totalTime) * 1.5f));
-	transform->Rotate(glm::vec3(0.0f, 0.0f, 1.0f) * -90.0f * deltaTime);
+	transform->SetPosition(glm::vec3(cosf(totalTime * 2.3f), 0.0f, sinf(totalTime) * 1.5f));
+	transform->Rotate(glm::vec3(1.2f, 1.5f, 0.7f) * -90.0f * deltaTime);
 }
 
 void TriangleApp::DrawFrame()
@@ -667,6 +679,230 @@ void TriangleApp::CreateSurface()
 
 #pragma endregion
 
+#pragma region Image Management
+
+void TriangleApp::CreateTextureImage()
+{
+	//TODO: figure out how to load the data from an image file
+	/*
+	int textureWidth, textureHeight, textureChannels;
+	stbi_uc* pixels = stbi_load("textures/testImage.png", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	VkDeviceSize imageSize = textureWidth * textureHeight * textureChannels;
+
+	if (!pixels) {
+		throw std::runtime_error("Failed to load image!");
+	}
+
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+
+	CreateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+	void* data;
+
+	vkMapMemory(logicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
+	memcpy(data, pixels, static_cast<size_t>(imageSize));
+	vkUnmapMemory(logicalDevice, stagingBufferMemory);
+
+	stbi_image_free(pixels);
+
+	CreateImage(textureWidth, textureHeight, VK_FORMAT_R8G8B8A8_UNORM,
+		VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+		VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage,
+		textureImageMemory);
+	
+
+	TransitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	CopyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
+	TransitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	*/
+}
+
+void TriangleApp::CreateTextureImageView()
+{
+	//textureImageView = CreateImageView(textureImage, VK_FORMAT_R8G8B8A8_UNORM);
+}
+
+void TriangleApp::CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory)
+{
+	VkImageCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	createInfo.imageType = VK_IMAGE_TYPE_2D;
+	createInfo.extent.width = width;
+	createInfo.extent.height = height;
+	createInfo.extent.depth = 1;
+	createInfo.mipLevels = 1;
+	createInfo.arrayLayers = 1;
+	createInfo.format = format;
+	createInfo.tiling = tiling;
+	createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	createInfo.usage = usage;
+	createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if (vkCreateImage(logicalDevice, &createInfo, nullptr, &image) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create image!");
+	}
+
+	VkMemoryRequirements memoryRequirements;
+	vkGetImageMemoryRequirements(logicalDevice, image, &memoryRequirements);
+
+	VkMemoryAllocateInfo allocateInfo = {};
+	allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocateInfo.allocationSize = memoryRequirements.size;
+	allocateInfo.memoryTypeIndex = findMemoryType(memoryRequirements.memoryTypeBits, properties);
+
+	if (vkAllocateMemory(logicalDevice, &allocateInfo, nullptr, &memory) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate image memory!");
+	}
+
+	vkBindImageMemory(logicalDevice, image, memory, 0);
+}
+
+VkImageView TriangleApp::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
+{
+	VkImageViewCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	createInfo.image = image;
+	createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	createInfo.format = format;
+	createInfo.subresourceRange.aspectMask = aspectFlags;
+	createInfo.subresourceRange.baseMipLevel = 0;
+	createInfo.subresourceRange.levelCount = 1;
+	createInfo.subresourceRange.baseArrayLayer = 0;
+	createInfo.subresourceRange.layerCount = 1;
+
+	VkImageView imageView;
+	if (vkCreateImageView(logicalDevice, &createInfo, nullptr, &imageView) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create image view!");
+	}
+
+	return imageView;
+}
+
+void TriangleApp::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+{
+	VkCommandBuffer commandBuffer = BeginSingleTimeCommand();
+
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = oldLayout;
+	barrier.newLayout = newLayout;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = image;
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+
+	VkPipelineStageFlags srcStage;
+	VkPipelineStageFlags dstStage;
+
+	if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+	else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else {
+		throw std::runtime_error("Unsupported Layput Transition!");
+	}
+
+	vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+	EndSingleTimeCommand(commandBuffer);
+}
+
+void TriangleApp::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t imageWidth, uint32_t imageHeight)
+{
+	VkCommandBuffer commandBuffer = BeginSingleTimeCommand();
+
+	VkBufferImageCopy region = {};
+	region.bufferOffset = 0;
+	region.bufferImageHeight = 0;
+	region.bufferRowLength = 0;
+
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+
+	region.imageOffset = { 0, 0, 0 };
+	region.imageExtent = {
+		imageWidth,
+		imageHeight,
+		1
+	};
+
+	vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+	EndSingleTimeCommand(commandBuffer);
+}
+
+#pragma endregion
+
+#pragma region Depth Buffer Management
+
+void TriangleApp::CreateDepthResources()
+{
+	VkFormat depthFormat = FindDepthFormat();
+
+	CreateImage(swapChainExtent.width, swapChainExtent.height,
+		depthFormat,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		depthImage, depthImageMemory);
+
+	depthImageView = CreateImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+}
+
+VkFormat TriangleApp::FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+{
+	for (VkFormat format : candidates) {
+		VkFormatProperties properties;
+		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &properties);
+
+		if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features) {
+			return format;
+		}
+		else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features) {
+			return format;
+		}
+	}
+
+	throw std::runtime_error("failed to find supported format!");
+}
+
+VkFormat TriangleApp::FindDepthFormat()
+{
+	return FindSupportedFormat({
+		VK_FORMAT_D32_SFLOAT,
+		VK_FORMAT_D32_SFLOAT_S8_UINT,
+		VK_FORMAT_D24_UNORM_S8_UINT
+		},
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+}
+
+bool TriangleApp::HasDepthStencil(VkFormat format)
+{
+	return (format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT);
+}
+
+#pragma endregion
+
 #pragma region Swap Chain Management
 
 void TriangleApp::CreateSwapChain()
@@ -750,6 +986,7 @@ void TriangleApp::RecreateSwapChain()
 	CreateImageViews();
 	CreateRenderPass();
 	CreateGraphicsPipeline();
+	CreateDepthResources();
 	CreateFrameBuffers();
 	CreateUniformBuffers();
 	CreateDescriptorPool();
@@ -792,6 +1029,15 @@ void TriangleApp::CleanupSwapChain()
 
 	//Destroy Descriptor Pool
 	vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
+
+	//Destroy Depth Image Views
+	vkDestroyImageView(logicalDevice, depthImageView, nullptr);
+
+	//Destroy Depth Image
+	vkDestroyImage(logicalDevice, depthImage, nullptr);
+
+	//Free Depth Image Memory
+	vkFreeMemory(logicalDevice, depthImageMemory, nullptr);
 }
 
 void TriangleApp::CreateImageViews()
@@ -800,26 +1046,7 @@ void TriangleApp::CreateImageViews()
 
 	//Create Image Views
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
-		//Setup Create Info
-		VkImageViewCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = swapChainImages[i];
-		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		createInfo.format = swapChainImageFormat;
-		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		createInfo.subresourceRange.levelCount = 1;
-		createInfo.subresourceRange.baseMipLevel = 0;
-		createInfo.subresourceRange.layerCount = 1;
-		createInfo.subresourceRange.baseArrayLayer = 0;
-
-		//Create the Image View
-		if (vkCreateImageView(logicalDevice, &createInfo, nullptr, &swapChainImageView[i]) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create Image Views");
-		}
+		swapChainImageView[i] = CreateImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 }
 
@@ -829,16 +1056,17 @@ void TriangleApp::CreateFrameBuffers()
 	swapChainFrameBuffers.resize(swapChainImages.size());
 
 	for (size_t i = 0; i < swapChainFrameBuffers.size(); i++) {
-		VkImageView attachments[] = {
-			swapChainImageView[i]
+		std::array<VkImageView, 2> attachments = {
+			swapChainImageView[i],
+			depthImageView
 		};
 
 		//Setup frame buffer create infos
 		VkFramebufferCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		createInfo.renderPass = renderPass;
-		createInfo.attachmentCount = 1;
-		createInfo.pAttachments = attachments;
+		createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		createInfo.pAttachments = attachments.data();
 		createInfo.width = swapChainExtent.width;
 		createInfo.height = swapChainExtent.height;
 		createInfo.layers = 1;
@@ -999,7 +1227,7 @@ void TriangleApp::CreateGraphicsPipeline()
 	rasterizerCreateInfo.rasterizerDiscardEnable = VK_FALSE;
 	rasterizerCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizerCreateInfo.lineWidth = 1.0f;
-	rasterizerCreateInfo.cullMode = VK_CULL_MODE_NONE;
+	rasterizerCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
 	rasterizerCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
 	rasterizerCreateInfo.depthBiasEnable = VK_FALSE;
 	rasterizerCreateInfo.depthBiasConstantFactor = 0.0f;
@@ -1038,6 +1266,19 @@ void TriangleApp::CreateGraphicsPipeline()
 	colorBlendCreateInfo.blendConstants[2] = 0.0f;
 	colorBlendCreateInfo.blendConstants[3] = 0.0f;
 
+	//Setup depth stencil
+	VkPipelineDepthStencilStateCreateInfo depthStencilCreateInfo = {};
+	depthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencilCreateInfo.depthTestEnable = VK_TRUE;
+	depthStencilCreateInfo.depthWriteEnable = VK_TRUE;
+	depthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+	depthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
+	depthStencilCreateInfo.minDepthBounds = 0.0f;
+	depthStencilCreateInfo.maxDepthBounds = 1.0f;
+	depthStencilCreateInfo.stencilTestEnable = VK_FALSE;
+	depthStencilCreateInfo.front = {};
+	depthStencilCreateInfo.back = {};
+
 	/*
 	//Setup Dynamic states
 	VkDynamicState dynamicStates[] = {
@@ -1074,7 +1315,7 @@ void TriangleApp::CreateGraphicsPipeline()
 	createInfo.pViewportState = &viewportStateCreateInfo;
 	createInfo.pRasterizationState = &rasterizerCreateInfo;
 	createInfo.pMultisampleState = &multisampleCreateInfo;
-	createInfo.pDepthStencilState = nullptr;
+	createInfo.pDepthStencilState = &depthStencilCreateInfo;
 	createInfo.pColorBlendState = &colorBlendCreateInfo;
 	createInfo.pDynamicState = nullptr;
 	createInfo.layout = pipelineLayout;
@@ -1180,15 +1421,31 @@ void TriangleApp::CreateRenderPass()
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+	//Setup Depth Attachment
+	VkAttachmentDescription depthAttachment = {};
+	depthAttachment.format = FindDepthFormat();
+	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 	//Setup Subpass
 	VkAttachmentReference colorAttachmentReference = {};
 	colorAttachmentReference.attachment = 0;
 	colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+	VkAttachmentReference depthAttachmentReference = {};
+	depthAttachmentReference.attachment = 1;
+	depthAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 	VkSubpassDescription subpassDescription = {};
 	subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpassDescription.colorAttachmentCount = 1;
 	subpassDescription.pColorAttachments = &colorAttachmentReference;
+	subpassDescription.pDepthStencilAttachment = &depthAttachmentReference;
 	
 	//Setup Subpass Dependencies
 	VkSubpassDependency dependency = {};
@@ -1199,11 +1456,14 @@ void TriangleApp::CreateRenderPass()
 	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
+	//Setup attachment array
+	std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
+
 	//Setup Create Info
 	VkRenderPassCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	createInfo.attachmentCount = 1;
-	createInfo.pAttachments = &colorAttachment;
+	createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+	createInfo.pAttachments = attachments.data();
 	createInfo.subpassCount = 1;
 	createInfo.pSubpasses = &subpassDescription;
 	createInfo.dependencyCount = 1;
@@ -1379,9 +1639,12 @@ void TriangleApp::CreateCommandBuffers()
 		renderPassBeginInfo.renderArea.extent = swapChainExtent;
 		renderPassBeginInfo.renderArea.offset = { 0, 0 };
 
-		VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-		renderPassBeginInfo.clearValueCount = 1;
-		renderPassBeginInfo.pClearValues = &clearColor;
+		std::array<VkClearValue, 2> clearColors = {};
+		clearColors[0] = { 0.0f, 0.0f, 0.0f, 1.0f };
+		clearColors[1].depthStencil = { 1.0f, 0 };
+
+		renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearColors.size());
+		renderPassBeginInfo.pClearValues = clearColors.data();
 
 		//Setup commands
 		vkCmdBeginRenderPass(commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -1403,6 +1666,41 @@ void TriangleApp::CreateCommandBuffers()
 			throw std::runtime_error("Failed to end Command Buffer!");
 		}
 	}
+}
+
+VkCommandBuffer TriangleApp::BeginSingleTimeCommand()
+{
+	VkCommandBufferAllocateInfo allocateInfo = {};
+	allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocateInfo.commandPool = commandPool;
+	allocateInfo.commandBufferCount = 1;
+
+	VkCommandBuffer commandBuffer;
+	vkAllocateCommandBuffers(logicalDevice, &allocateInfo, &commandBuffer);
+
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+	return commandBuffer;
+}
+
+void TriangleApp::EndSingleTimeCommand(VkCommandBuffer commandBuffer)
+{
+	vkEndCommandBuffer(commandBuffer);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(graphicsQueue);
+
+	vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
 }
 
 #pragma endregion
@@ -1568,23 +1866,8 @@ void TriangleApp::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMe
 
 void TriangleApp::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
-	//Setup allocate info
-	VkCommandBufferAllocateInfo allocateInfo = {};
-	allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocateInfo.commandPool = commandPool;
-	allocateInfo.commandBufferCount = 1;
-	allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
-	//Allocate command buffer
-	VkCommandBuffer commandBuffer;
-	vkAllocateCommandBuffers(logicalDevice, &allocateInfo, &commandBuffer);
-
-	//Record command buffer
-	VkCommandBufferBeginInfo beginInfo = {};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+	//Begin the command buffer
+	VkCommandBuffer commandBuffer = BeginSingleTimeCommand();
 
 	//Copy the buffer
 	VkBufferCopy copyRegion = {};
@@ -1593,19 +1876,8 @@ void TriangleApp::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSiz
 	copyRegion.size = size;
 	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-	vkEndCommandBuffer(commandBuffer);
-
-	//Execute the command buffer
-	VkSubmitInfo submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
-
-	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(graphicsQueue);
-
-	//Cleanup command buffer
-	vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
+	//End the command buffer
+	EndSingleTimeCommand(commandBuffer);
 }
 
 #pragma endregion

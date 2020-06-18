@@ -17,7 +17,7 @@ struct QueueFamilyIndices {
 };
 
 struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities;
+	VkSurfaceCapabilitiesKHR capabilities = {};
 	std::vector<VkSurfaceFormatKHR> formats;
 	std::vector<VkPresentModeKHR> presentModes;
 };
@@ -85,6 +85,14 @@ private:
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
 
+	VkImage textureImage;
+	VkImageView textureImageView;
+	VkDeviceMemory textureImageMemory;
+
+	VkImage depthImage;
+	VkImageView depthImageView;
+	VkDeviceMemory depthImageMemory;
+
 	const std::vector<const char*> validationLayers = {
 		"VK_LAYER_KHRONOS_validation"
 	};
@@ -137,6 +145,28 @@ private:
 	//Creates a surface for Vulkan to render to
 	void CreateSurface();
 
+	//Creates a texture image
+	void CreateTextureImage();
+	//Creates an image view for the texture
+	void CreateTextureImageView();
+	//Creates an image and binds it to memory
+	void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory);
+	//Creates an image view
+	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+	//Transitions the image's Image Layout
+	void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	//Copies image data to a buffer
+	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t imageWidth, uint32_t imageHeight);
+
+	//Creates the depth buffer resources
+	void CreateDepthResources();
+	//Checks support for required formats
+	VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+	//Finds a format that can be used as a depth attachment
+	VkFormat FindDepthFormat();
+	//Checks whether the given format has a depth stencil attachment
+	bool HasDepthStencil(VkFormat format);
+
 	//Creates the swap chain
 	void CreateSwapChain();
 	//Recreates the swap chain if variables such as window size have changed
@@ -184,6 +214,10 @@ private:
 	void CreateCommandPool();
 	//Creates the Command Buffers
 	void CreateCommandBuffers();
+	//Creates a command buffer for a one time command
+	VkCommandBuffer BeginSingleTimeCommand();
+	//Destroys a command buffer that was used for a one time command
+	void EndSingleTimeCommand(VkCommandBuffer commandBuffer);
 
 	//Setup the debug util messenger
 	void SetupDebugMessenger();

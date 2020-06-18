@@ -26,7 +26,7 @@ void main(){
 	mat4 mvp = ubo.projection * ubo.view * ubo.model;
 	gl_Position = mvp * vec4(inPosition, 1.0f);
 	position = (ubo.model * vec4(inPosition, 1.0f)).xyz;
-	lights = Light[](Light(vec3(0.0f, 0.0f, 0.0f), vec3(1.0f,1.0f,1.0f), 1.0f));
+	lights = Light[](Light(vec3(0.0f, 0.0f, 0.0f), vec3(1.0f,1.0f,1.0f), 2.0f));
 	vertColor = inColor;
 	uv = texCoord;
 }

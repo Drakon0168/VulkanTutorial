@@ -96,6 +96,13 @@ public:
 	/// <param name="degrees">Whether the rotation is in degrees or radians (degrees by default)</param>
 	void Rotate(glm::vec3 eulerRotation, bool degrees = true);
 
+	/// <summary>
+	/// Rotates the transform to look at the target position
+	/// </summary>
+	/// <param name="target">The position to look towards</param>
+	/// <param name="up">The up axis of the rotation (+y by default)</param>
+	void LookAt(glm::vec3 target, glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f));;
+
 #pragma endregion
 
 #pragma region Model Matrix
