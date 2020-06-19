@@ -8,7 +8,7 @@ layout(location = 3) in Light{
 	vec3 position;
 	vec3 color;
 	float range;
-} lights[1];
+} lights[5];
 
 layout(location = 0) out vec4 outColor;
 
