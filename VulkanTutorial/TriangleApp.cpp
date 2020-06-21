@@ -57,7 +57,7 @@ void TriangleApp::Run()
 	meshes[0].GenerateCube();
 
 	//Set starting camera values
-	camera = std::make_shared<Camera>(glm::vec3(0.0f, 5.0f, -5.0f), glm::quat(glm::vec3(glm::radians(45.0f), 0.0f, 0.0f)), true);
+	camera = new Camera(glm::vec3(0.0f, 5.0f, -5.0f), glm::quat(glm::vec3(glm::radians(45.0f), 0.0f, 0.0f)), true);
 	camera->GetTransform()->LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	
 	InitVulkan();
@@ -68,6 +68,8 @@ void TriangleApp::Run()
 
 	MainLoop();
 	Cleanup();
+
+	delete camera;
 }
 
 void TriangleApp::InitWindow()

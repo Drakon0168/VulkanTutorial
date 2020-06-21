@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Camera.h"
 
+Camera* Camera::mainCamera = nullptr;
+
 #pragma region Constructor
 
 Camera::Camera(glm::vec3 position, glm::quat orientation, bool perspective, float FOV, float orthographicSize, float aspectRatio, float nearPlane, float farPlane)
@@ -19,11 +21,29 @@ Camera::Camera(glm::vec3 position, glm::quat orientation, bool perspective, floa
 	//Mark matrices for regeneration
 	projectionDirty = true;
 	viewDirty = true;
+
+	//Set this to the main camera if no main camera has been set
+	if (mainCamera == nullptr) {
+		mainCamera = this;
+	}
+}
+
+Camera::~Camera()
+{
 }
 
 #pragma endregion
 
 #pragma region Accessors
+
+Camera* Camera::GetMainCamera()
+{
+	if (mainCamera == nullptr) {
+		mainCamera = new Camera();
+	}
+
+	return mainCamera;
+}
 
 glm::mat4 Camera::GetProjection()
 {

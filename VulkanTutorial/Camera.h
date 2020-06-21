@@ -6,6 +6,8 @@
 class Camera
 {
 private:
+	static Camera* mainCamera;
+
 	glm::mat4 projection;
 	glm::mat4 view;
 	std::shared_ptr<Transform> transform;
@@ -17,6 +19,19 @@ private:
 	float orthographicSize;
 	glm::vec2 clippingPlanes;
 
+#pragma region Matrix Management
+
+	/// <summary>
+	/// Updates the camera's projection if something has changed
+	/// </summary>
+	void UpdateProjection();
+
+	/// <summary>
+	/// Updates the view matrix if something has changed
+	/// </summary>
+	void UpdateView();
+
+#pragma endregion
 public:
 #pragma region Constructor
 
@@ -29,9 +44,23 @@ public:
 		float nearPlane = 0.1f,
 		float farPlane = 100.0f);
 
+	~Camera();
+
 #pragma endregion
 
 #pragma region Accessors
+
+	/// <summary>
+	/// Returns a shared ptr to the main camera
+	/// </summary>
+	/// <returns>The main camera</returns>
+	static Camera* GetMainCamera();
+
+	/// <summary>
+	/// Sets the main camera to the passed in value
+	/// </summary>
+	/// <param name="value">The camera to set as main</param>
+	static void SetMainCamera(Camera* value);
 
 	/// <summary>
 	/// Returns the projection matrix and regenerates it if necessary
@@ -122,20 +151,6 @@ public:
 	/// </summary>
 	/// <param name="value">The calue to set the far clipping plane to</param>
 	void SetFarPlane(float value);
-
-#pragma endregion
-
-#pragma region Matrix Management
-
-	/// <summary>
-	/// Updates the camera's projection if something has changed
-	/// </summary>
-	void UpdateProjection();
-
-	/// <summary>
-	/// Updates the view matrix if something has changed
-	/// </summary>
-	void UpdateView();
 
 #pragma endregion
 };
