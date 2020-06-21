@@ -9,9 +9,18 @@ private:
 	glm::vec3 position;
 	glm::vec3 scale;
 	glm::quat orientation;
-	glm::mat4 model;
 
+	glm::mat4 model;
 	bool isDirty; //Keeps track of whether position rotation or scale have changed to know when to regenerate the model matrix
+
+#pragma region Model Matrix
+
+/// <summary>
+/// Regenerates the model matrix
+/// </summary>
+	void GenerateModelMatrix();
+
+#pragma endregion
 
 public:
 
@@ -102,15 +111,6 @@ public:
 	/// <param name="target">The position to look towards</param>
 	/// <param name="up">The up axis of the rotation (+y by default)</param>
 	void LookAt(glm::vec3 target, glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f));;
-
-#pragma endregion
-
-#pragma region Model Matrix
-
-	/// <summary>
-	/// Regenerates the model matrix
-	/// </summary>
-	void GenerateModelMatrix();
 
 #pragma endregion
 };

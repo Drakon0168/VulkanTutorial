@@ -3,10 +3,14 @@
 
 #pragma region Constructor
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint16_t> indices)
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint16_t> indices, std::shared_ptr<VkBuffer> vertexBuffer, uint32_t vertexBufferOffset, std::shared_ptr<VkBuffer> indexBuffer, uint32_t indexBufferOffset)
 {
 	this->vertices = vertices;
 	this->indices = indices;
+	this->vertexBuffer = vertexBuffer;
+	this->vertexBufferOffset = vertexBufferOffset;
+	this->indexBuffer = indexBuffer;
+	this->indexBufferOffset = indexBufferOffset;
 
 	transform = std::make_shared<Transform>();
 }
@@ -25,6 +29,22 @@ void Mesh::SetVertices(std::vector<Vertex> value)
 	vertices = value;
 }
 
+std::shared_ptr<VkBuffer> Mesh::GetVertexBuffer()
+{
+	return vertexBuffer;
+}
+
+uint32_t Mesh::GetVertexBufferOffset()
+{
+	return vertexBufferOffset;
+}
+
+void Mesh::SetVertexBuffer(std::shared_ptr<VkBuffer> value, uint32_t offset)
+{
+	vertexBuffer = value;
+	vertexBufferOffset = offset;
+}
+
 std::vector<uint16_t> Mesh::GetIndices()
 {
 	return indices;
@@ -33,6 +53,22 @@ std::vector<uint16_t> Mesh::GetIndices()
 void Mesh::SetIndices(std::vector<uint16_t> value)
 {
 	indices = value;
+}
+
+std::shared_ptr<VkBuffer> Mesh::GetIndexBuffer()
+{
+	return indexBuffer;
+}
+
+uint32_t Mesh::GetIndexBufferOffset()
+{
+	return indexBufferOffset;
+}
+
+void Mesh::SetIndexBuffer(std::shared_ptr<VkBuffer> value, uint32_t offset)
+{
+	indexBuffer = value;
+	indexBufferOffset = offset;
 }
 
 std::shared_ptr<Transform> Mesh::GetTransform()
@@ -63,10 +99,11 @@ void Mesh::GeneratePlane()
 		0, 1, 2,
 		2, 3, 0
 	};
+
+	//TODO Update Buffers
 }
 
 void Mesh::GenerateCube() {
-	//TODO: finish setting up vertices and indices for cube
 	//Set vertices
 	vertices.resize(4);
 
@@ -98,6 +135,8 @@ void Mesh::GenerateCube() {
 		5,3,1,
 		5,7,3
 	};
+
+	//TODO: Update Buffers
 }
 
 #pragma endregion

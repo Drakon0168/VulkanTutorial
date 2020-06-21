@@ -1563,7 +1563,7 @@ void TriangleApp::CreateUniformBuffers()
 void TriangleApp::UpdateUniformBuffers(uint32_t currentImage)
 {
 	//Setup the model view and projection matrices
-	UniformBufferObject ubo = {};
+	UniformBufferObject ubo = {}; //TODO: Move this to work with multiple objects
 	ubo.model = meshes[0].GetTransform()->GetModelMatrix();
 	ubo.view = camera->GetView();
 	ubo.projection = camera->GetProjection();
@@ -1650,6 +1650,9 @@ void TriangleApp::CreateCommandBuffers()
 
 		//Setup commands
 		vkCmdBeginRenderPass(commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		//Begin Per Object Commands 
+		//TODO: Move this to work with multiple objects
 		vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
 		VkBuffer vertexBuffers[] = { vertexBuffer };
@@ -1662,6 +1665,8 @@ void TriangleApp::CreateCommandBuffers()
 		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(meshes[0].GetIndices().size()), 1, 0, 0, 0);
+		//End Per object commands
+
 		vkCmdEndRenderPass(commandBuffers[i]);
 
 		if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
