@@ -7,6 +7,12 @@ struct Vertex {
 	alignas(16) glm::vec3 color;
 	alignas(8) glm::vec2 textureCoordinate;
 
+	Vertex(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f), glm::vec2 textureCoordinate = glm::vec2(0.0f, 0.0f)) {
+		this->position = position;
+		this->color = color;
+		this->textureCoordinate = textureCoordinate;
+	}
+
 	static VkVertexInputBindingDescription getBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription = {};
 		bindingDescription.binding = 0;

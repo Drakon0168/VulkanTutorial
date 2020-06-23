@@ -53,8 +53,9 @@ void TriangleApp::Run()
 	}
 
 	//TODO: Remove this once meshes are generated in an init function or loaded from models
-	meshes.resize(1);
+	meshes.resize(2);
 	meshes[0].GenerateCube();
+	meshes[1].GenerateSphere(10);
 
 	//Set starting camera values
 	camera = new Camera(glm::vec3(0.0f, 5.0f, -5.0f), glm::quat(glm::vec3(glm::radians(45.0f), 0.0f, 0.0f)), true);
@@ -146,8 +147,6 @@ void TriangleApp::InitVulkan()
 
 	//Create the Command Buffers
 	CreateCommandBuffers();
-
-	
 
 	//Create the texture image
 	CreateTextureImage();
@@ -270,6 +269,8 @@ void TriangleApp::DrawFrame()
 
 	//Mark the image as being in use
 	imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+
+	//TODO: Re-record command buffer for each object
 
 	//Update uniform buffers
 	UpdateUniformBuffers(imageIndex);

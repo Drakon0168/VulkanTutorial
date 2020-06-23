@@ -17,6 +17,12 @@ private:
 
 	std::shared_ptr<Transform> transform;
 
+#pragma region Buffer Management
+
+	void UpdateBuffers();
+
+#pragma endregion
+
 public:
 
 #pragma region Constructor
@@ -112,6 +118,11 @@ public:
 	/// Sets the vertices and indices to generate a cube
 	/// </summary>
 	void GenerateCube();
+
+	/// <summary>
+	/// Sets the vertices and indices to generate a sphere
+	/// </summary>
+	void GenerateSphere(int resolution = 5);
 
 #pragma endregion
 };
