@@ -152,10 +152,10 @@ void Mesh::GenerateSphere(int resolution)
 	//Set Vertices
 	float angleOffset = glm::radians(360.0f) / resolution;
 	float heightAngleOffset = glm::radians(180.0f) / (resolution - 1);
-	float radius = 0.5f;
+	float radius = 1.0f;
 
 	//Add cap
-	vertices.push_back(Vertex(glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec2(0.0f, 0.0f)));
+	vertices.push_back(Vertex(glm::vec3(0.0f, radius, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec2(0.0f, 0.0f)));
 
 	for (uint32_t row = 1; row < resolution - 1; row++) {
 		float height = cosf(heightAngleOffset * row) * radius;
@@ -170,7 +170,7 @@ void Mesh::GenerateSphere(int resolution)
 	}
 
 	//Add bottom
-	vertices.push_back(Vertex(glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(1.0f, 1.0f,1.0f), glm::vec2(0.0f, 0.0f)));
+	vertices.push_back(Vertex(glm::vec3(0.0f, -radius, 0.0f), glm::vec3(1.0f, 1.0f,1.0f), glm::vec2(0.0f, 0.0f)));
 
 	//Set Indices
 
