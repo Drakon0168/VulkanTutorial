@@ -42,10 +42,16 @@
     <ClCompile Include="Mesh.cpp">
       <Filter>Source Files\Components</Filter>
     </ClCompile>
-    <ClCompile Include="Camera.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Transform.cpp">
+      <Filter>Source Files\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Buffer.cpp">
+      <Filter>Source Files\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Command.cpp">
       <Filter>Source Files\Components</Filter>
     </ClCompile>
   </ItemGroup>
@@ -65,11 +71,17 @@
     <ClInclude Include="UniformBufferObject.h">
       <Filter>Header Files\Components</Filter>
     </ClInclude>
+    <ClInclude Include="Buffer.h">
+      <Filter>Header Files\Components</Filter>
+    </ClInclude>
     <ClInclude Include="Transform.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Components</Filter>
     </ClInclude>
     <ClInclude Include="Camera.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Command.h">
+      <Filter>Header Files\Components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

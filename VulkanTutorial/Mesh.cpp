@@ -3,7 +3,7 @@
 
 #pragma region Constructor
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint16_t> indices, std::shared_ptr<VkBuffer> vertexBuffer, uint32_t vertexBufferOffset, std::shared_ptr<VkBuffer> indexBuffer, uint32_t indexBufferOffset)
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint16_t> indices, std::shared_ptr<Buffer> vertexBuffer, uint32_t vertexBufferOffset, std::shared_ptr<Buffer> indexBuffer, uint32_t indexBufferOffset)
 {
 	this->vertices = vertices;
 	this->indices = indices;
@@ -29,7 +29,7 @@ void Mesh::SetVertices(std::vector<Vertex> value)
 	vertices = value;
 }
 
-std::shared_ptr<VkBuffer> Mesh::GetVertexBuffer()
+std::shared_ptr<Buffer> Mesh::GetVertexBuffer()
 {
 	return vertexBuffer;
 }
@@ -39,7 +39,7 @@ uint32_t Mesh::GetVertexBufferOffset()
 	return vertexBufferOffset;
 }
 
-void Mesh::SetVertexBuffer(std::shared_ptr<VkBuffer> value, uint32_t offset)
+void Mesh::SetVertexBuffer(std::shared_ptr<Buffer> value, uint32_t offset)
 {
 	vertexBuffer = value;
 	vertexBufferOffset = offset;
@@ -55,7 +55,7 @@ void Mesh::SetIndices(std::vector<uint16_t> value)
 	indices = value;
 }
 
-std::shared_ptr<VkBuffer> Mesh::GetIndexBuffer()
+std::shared_ptr<Buffer> Mesh::GetIndexBuffer()
 {
 	return indexBuffer;
 }
@@ -65,7 +65,7 @@ uint32_t Mesh::GetIndexBufferOffset()
 	return indexBufferOffset;
 }
 
-void Mesh::SetIndexBuffer(std::shared_ptr<VkBuffer> value, uint32_t offset)
+void Mesh::SetIndexBuffer(std::shared_ptr<Buffer> value, uint32_t offset)
 {
 	indexBuffer = value;
 	indexBufferOffset = offset;

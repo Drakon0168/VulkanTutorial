@@ -175,7 +175,9 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Command.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="pch.cpp" />
@@ -183,7 +185,9 @@
     <ClCompile Include="TriangleApp.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Buffer.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Command.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Transform.h" />

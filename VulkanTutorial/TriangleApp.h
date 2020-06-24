@@ -2,6 +2,7 @@
 
 #include "pch.h"
 #include "Vertex.h"
+#include "Buffer.h"
 #include "UniformBufferObject.h"
 #include "Mesh.h"
 #include "Camera.h"
@@ -27,6 +28,16 @@ class TriangleApp
 public:
 	//Initailizes the window and starts the main loop
 	void Run();
+
+	//TODO: Set these up properly when I'm done testing
+	static VkPhysicalDevice physicalDevice;
+	static VkDevice logicalDevice;
+	static VkQueue graphicsQueue;
+	static VkQueue presentQueue;
+
+	//Find the type of memory used by the GPU
+	static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
 private:
 	const int WINDOW_WIDTH = 800;
 	const int WINDOW_HEIGHT = 600;
@@ -46,8 +57,6 @@ private:
 	
 	VkDebugUtilsMessengerEXT debugMessenger;
 
-	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	VkDevice logicalDevice;
 	VkRenderPass renderPass;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkPipelineLayout pipelineLayout;
@@ -60,21 +69,14 @@ private:
 	size_t currentFrame = 0;
 	bool frameBufferResized = false;
 
-	VkBuffer vertexBuffer;
-	VkDeviceMemory vertexBufferMemory;
-	VkBuffer indexBuffer;
-	VkDeviceMemory indexBufferMemory;
-	std::vector<VkBuffer> uniformBuffers;
-	std::vector<VkDeviceMemory> uniformBuffersMemory;
+	std::shared_ptr<Buffer> vertexBuffer;
+	std::shared_ptr<Buffer> indexBuffer;
+	std::vector<Buffer> uniformBuffers;
 
 	VkDescriptorPool descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
 
-	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
-
-	VkQueue graphicsQueue;
-	VkQueue presentQueue;
 
 	VkSurfaceKHR surface;
 
@@ -200,16 +202,14 @@ private:
 	VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
 	//Creates the vertex buffer
-	void CreateVertexBuffer();
+	void CreateVertexBuffer(int index);
 	//Creates the index buffer
-	void CreateIndexBuffer();
+	void CreateIndexBuffer(int index);
 	//Creates the uniform buffer
 	void CreateUniformBuffers();
 	//Updates the uniform buffers
 	void UpdateUniformBuffers(uint32_t currentImage);
-	//Find the type of memory used by the GPU
-	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
+	
 	//Creates the Command Pool
 	void CreateCommandPool();
 	//Creates the Command Buffers
@@ -237,8 +237,4 @@ private:
 	static void FrameBufferResizeCallback(GLFWwindow* window, int width, int height);
 	//Reads in a file and saves it to a char list
 	static std::vector<char> ReadFile(const std::string& filePath);
-	//Creates a buffer based on the parameters
-	void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-	//Copies data from the source buffer to the destination buffer
-	void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 };
