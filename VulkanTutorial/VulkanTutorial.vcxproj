@@ -191,6 +191,7 @@
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Transform.h" />
+    <ClInclude Include="TransformData.h" />
     <ClInclude Include="TriangleApp.h" />
     <ClInclude Include="UniformBufferObject.h" />
     <ClInclude Include="Vertex.h" />

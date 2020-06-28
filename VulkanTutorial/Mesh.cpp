@@ -3,7 +3,7 @@
 
 #pragma region Constructor
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint16_t> indices, std::shared_ptr<Buffer> vertexBuffer, uint32_t vertexBufferOffset, std::shared_ptr<Buffer> indexBuffer, uint32_t indexBufferOffset)
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint16_t> indices, std::shared_ptr<Buffer> vertexBuffer, uint32_t vertexBufferOffset, std::shared_ptr<Buffer> indexBuffer, uint32_t indexBufferOffset, std::vector<std::shared_ptr<Buffer>> uniformBuffers)
 {
 	this->vertices = vertices;
 	this->indices = indices;
@@ -11,8 +11,11 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint16_t> indices, std::sha
 	this->vertexBufferOffset = vertexBufferOffset;
 	this->indexBuffer = indexBuffer;
 	this->indexBufferOffset = indexBufferOffset;
+	this->uniformBuffers = uniformBuffers;
 
 	transform = std::make_shared<Transform>();
+
+	std::cout << "Called in file " << __FILE__ << " line: " << __LINE__ << std::endl;
 }
 
 #pragma endregion
@@ -69,6 +72,26 @@ void Mesh::SetIndexBuffer(std::shared_ptr<Buffer> value, uint32_t offset)
 {
 	indexBuffer = value;
 	indexBufferOffset = offset;
+}
+
+std::vector<VkDescriptorSet> Mesh::GetDescriptorSets()
+{
+	return descriptorSets;
+}
+
+void Mesh::SetDescriptorSets(std::vector<VkDescriptorSet> value)
+{
+	descriptorSets = value;
+}
+
+std::vector<std::shared_ptr<Buffer>> Mesh::GetUniformBuffers()
+{
+	return uniformBuffers;
+}
+
+void Mesh::SetUniformBuffers(std::vector<std::shared_ptr<Buffer>> value)
+{
+	uniformBuffers = value;
 }
 
 std::shared_ptr<Transform> Mesh::GetTransform()
@@ -152,7 +175,7 @@ void Mesh::GenerateSphere(int resolution)
 	//Set Vertices
 	float angleOffset = glm::radians(360.0f) / resolution;
 	float heightAngleOffset = glm::radians(180.0f) / (resolution - 1);
-	float radius = 1.0f;
+	float radius = 0.75f;
 
 	//Add cap
 	vertices.push_back(Vertex(glm::vec3(0.0f, radius, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec2(0.0f, 0.0f)));
@@ -173,7 +196,6 @@ void Mesh::GenerateSphere(int resolution)
 	vertices.push_back(Vertex(glm::vec3(0.0f, -radius, 0.0f), glm::vec3(1.0f, 1.0f,1.0f), glm::vec2(0.0f, 0.0f)));
 
 	//Set Indices
-
 	//Add Cap
 	for (uint16_t i = 1; i <= resolution; i++) {
 		if (i == 1) {
@@ -210,9 +232,9 @@ void Mesh::GenerateSphere(int resolution)
 					indices.push_back(j);
 					indices.push_back(j - 1);
 					indices.push_back((j - 1) + resolution);
-					/*indices.push_back(j);
+					indices.push_back(j);
 					indices.push_back((j - 1) + resolution);
-					indices.push_back(j + resolution);*/
+					indices.push_back(j + resolution);
 				}
 			}
 		}

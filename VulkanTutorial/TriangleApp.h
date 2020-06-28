@@ -2,6 +2,7 @@
 
 #include "pch.h"
 #include "Vertex.h"
+#include "TransformData.h"
 #include "Buffer.h"
 #include "UniformBufferObject.h"
 #include "Mesh.h"
@@ -69,12 +70,13 @@ private:
 	size_t currentFrame = 0;
 	bool frameBufferResized = false;
 
-	std::shared_ptr<Buffer> vertexBuffer;
-	std::shared_ptr<Buffer> indexBuffer;
-	std::vector<Buffer> uniformBuffers;
+	std::vector<std::shared_ptr<Buffer>> vertexBuffers;
+	std::vector<std::shared_ptr<Buffer>> indexBuffers;
+
+	Buffer instanceBuffer;
+	std::vector<Transform> instancedTransforms;
 
 	VkDescriptorPool descriptorPool;
-	std::vector<VkDescriptorSet> descriptorSets;
 
 	std::vector<VkCommandBuffer> commandBuffers;
 
@@ -195,7 +197,7 @@ private:
 	//Creates the descriptor pool
 	void CreateDescriptorPool();
 	//Creates the descriptor sets
-	void CreateDescriptorSets();
+	void CreateDescriptorSets(int index);
 	//Creates the Render Pass
 	void CreateRenderPass();
 	//Creates the Vulkan shader from the shader data
@@ -206,7 +208,9 @@ private:
 	//Creates the index buffer
 	void CreateIndexBuffer(int index);
 	//Creates the uniform buffer
-	void CreateUniformBuffers();
+	void CreateUniformBuffers(int index);
+	//Creates the buffer that is used for instanced rendering
+	void CreateInstanceBuffer();
 	//Updates the uniform buffers
 	void UpdateUniformBuffers(uint32_t currentImage);
 	
@@ -214,10 +218,6 @@ private:
 	void CreateCommandPool();
 	//Creates the Command Buffers
 	void CreateCommandBuffers();
-	//Creates a command buffer for a one time command
-	VkCommandBuffer BeginSingleTimeCommand();
-	//Destroys a command buffer that was used for a one time command
-	void EndSingleTimeCommand(VkCommandBuffer commandBuffer);
 
 	//Setup the debug util messenger
 	void SetupDebugMessenger();

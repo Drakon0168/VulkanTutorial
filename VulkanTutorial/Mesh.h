@@ -4,6 +4,7 @@
 #include "Vertex.h"
 #include "Transform.h"
 #include "Buffer.h"
+#include "UniformBufferObject.h"
 
 class Mesh
 {
@@ -15,6 +16,10 @@ private:
 	std::vector<uint16_t> indices;
 	uint32_t indexBufferOffset;
 	std::shared_ptr<Buffer> indexBuffer;
+
+	std::vector<std::shared_ptr<Buffer>> uniformBuffers;
+
+	std::vector<VkDescriptorSet> descriptorSets;
 
 	std::shared_ptr<Transform> transform;
 
@@ -32,7 +37,8 @@ public:
 		std::vector<Vertex> vertices = {},
 		std::vector<uint16_t> indices = {},
 		std::shared_ptr<Buffer> vertexBuffer = nullptr, uint32_t vertexBufferOffset = 0, 
-		std::shared_ptr<Buffer> indexBuffer = nullptr, uint32_t indexBufferOffset = 0);
+		std::shared_ptr<Buffer> indexBuffer = nullptr, uint32_t indexBufferOffset = 0,
+		std::vector<std::shared_ptr<Buffer>> uniformBuffers = std::vector<std::shared_ptr<Buffer>>());
 
 #pragma endregion
 
@@ -99,6 +105,12 @@ public:
 	/// <param name="value">The index buffer to set to</param>
 	/// <param name="offset">The offset within the buffer that this mesh's data is stored at</param>
 	void SetIndexBuffer(std::shared_ptr<Buffer> value, uint32_t offset = 0);
+
+	//TODO: Remove this once instancing is implemented
+	std::vector<VkDescriptorSet> GetDescriptorSets();
+	void SetDescriptorSets(std::vector<VkDescriptorSet> value);
+	std::vector<std::shared_ptr<Buffer>> GetUniformBuffers();
+	void SetUniformBuffers(std::vector<std::shared_ptr<Buffer>> value);
 
 	/// <summary>
 	/// Returns the transform associated with this object

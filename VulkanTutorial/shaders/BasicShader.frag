@@ -24,5 +24,7 @@ void main(){
 		finalColor += lights[i].color * strength;
 	}
 
+	finalColor += vec3(0.015f, 0.015f, 0.015f);
+
 	outColor = vec4(finalColor * vertColor, 1.0f);
 }

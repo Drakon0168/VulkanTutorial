@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Transform.h"
+#include <glm/gtx/quaternion.hpp>
 
 #pragma region Constructor
 
@@ -136,7 +137,7 @@ void Transform::GenerateModelMatrix()
 {
 	//Update the matrix
 	glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), position);
-	glm::mat4 rotationMatrix = glm::mat4(orientation);
+	glm::mat4 rotationMatrix = glm::toMat4(orientation);
 	glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
 
 	model = translationMatrix * rotationMatrix * scaleMatrix;
