@@ -73,9 +73,9 @@ private:
 	std::vector<std::shared_ptr<Buffer>> vertexBuffers;
 	std::vector<std::shared_ptr<Buffer>> indexBuffers;
 
-	Buffer instanceBuffer;
-	std::vector<Transform> instancedTransforms;
+	std::vector<std::shared_ptr<Buffer>> uniformBuffers;
 
+	std::vector<VkDescriptorSet> descriptorSets;
 	VkDescriptorPool descriptorPool;
 
 	std::vector<VkCommandBuffer> commandBuffers;
@@ -197,7 +197,7 @@ private:
 	//Creates the descriptor pool
 	void CreateDescriptorPool();
 	//Creates the descriptor sets
-	void CreateDescriptorSets(int index);
+	void CreateDescriptorSets();
 	//Creates the Render Pass
 	void CreateRenderPass();
 	//Creates the Vulkan shader from the shader data
@@ -208,9 +208,7 @@ private:
 	//Creates the index buffer
 	void CreateIndexBuffer(int index);
 	//Creates the uniform buffer
-	void CreateUniformBuffers(int index);
-	//Creates the buffer that is used for instanced rendering
-	void CreateInstanceBuffer();
+	void CreateUniformBuffers();
 	//Updates the uniform buffers
 	void UpdateUniformBuffers(uint32_t currentImage);
 	

@@ -45,6 +45,11 @@ Camera* Camera::GetMainCamera()
 	return mainCamera;
 }
 
+void Camera::SetMainCamera(Camera* value)
+{
+	mainCamera = value;
+}
+
 glm::mat4 Camera::GetProjection()
 {
 	//Regenerate the projection if it is dirty

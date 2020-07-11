@@ -17,11 +17,9 @@ private:
 	uint32_t indexBufferOffset;
 	std::shared_ptr<Buffer> indexBuffer;
 
-	std::vector<std::shared_ptr<Buffer>> uniformBuffers;
-
-	std::vector<VkDescriptorSet> descriptorSets;
-
-	std::shared_ptr<Transform> transform;
+	std::vector<std::shared_ptr<Transform>> instances;
+	uint32_t activeInstanceCount;
+	std::shared_ptr<Buffer> instanceBuffer;
 
 #pragma region Buffer Management
 
@@ -38,7 +36,21 @@ public:
 		std::vector<uint16_t> indices = {},
 		std::shared_ptr<Buffer> vertexBuffer = nullptr, uint32_t vertexBufferOffset = 0, 
 		std::shared_ptr<Buffer> indexBuffer = nullptr, uint32_t indexBufferOffset = 0,
-		std::vector<std::shared_ptr<Buffer>> uniformBuffers = std::vector<std::shared_ptr<Buffer>>());
+		std::vector<std::shared_ptr<Transform>> instances = std::vector<std::shared_ptr<Transform>>(), std::shared_ptr<Buffer> instanceBuffer = nullptr);
+
+#pragma endregion
+
+#pragma region Buffer Management
+
+	/// <summary>
+	/// Creates and allocates the instance buffer that will be used by this mesh
+	/// </summary>
+	void CreateInstanceBuffer();
+
+	/// <summary>
+	/// Updates the mesh's instance buffer
+	/// </summary>
+	void UpdateInstanceBuffer();
 
 #pragma endregion
 
@@ -106,17 +118,44 @@ public:
 	/// <param name="offset">The offset within the buffer that this mesh's data is stored at</param>
 	void SetIndexBuffer(std::shared_ptr<Buffer> value, uint32_t offset = 0);
 
-	//TODO: Remove this once instancing is implemented
-	std::vector<VkDescriptorSet> GetDescriptorSets();
-	void SetDescriptorSets(std::vector<VkDescriptorSet> value);
-	std::vector<std::shared_ptr<Buffer>> GetUniformBuffers();
-	void SetUniformBuffers(std::vector<std::shared_ptr<Buffer>> value);
+	/// <summary>
+	/// Returns the number of active instances of this mesh
+	/// </summary>
+	/// <returns>The number of active mesh instances</returns>
+	uint32_t GetActiveInstanceCount();
 
 	/// <summary>
-	/// Returns the transform associated with this object
+	/// Returns a std::vector of all of the active instances of this mesh
 	/// </summary>
-	/// <returns>The transform attached to this object</returns>
-	std::shared_ptr<Transform> GetTransform();
+	std::vector<std::shared_ptr<Transform>> GetActiveInstances();
+
+	/// <summary>
+	/// Returns the instance buffer used by this mesh
+	/// </summary>
+	/// <returns>The mesh's instance buffer</returns>
+	std::shared_ptr<Buffer> GetInstanceBuffer();
+
+	/// <summary>
+	/// Sets the instance buffer to the specified value
+	/// </summary>
+	/// <param name="value">The value to set the instance buffer to</param>
+	void SetInstanceBuffer(std::shared_ptr<Buffer> value);
+
+#pragma endregion
+
+#pragma region Instances
+
+	/// <summary>
+	/// Adds the specified transform to the instance list
+	/// </summary>
+	/// <param name="value">The transform to add</param>
+	void AddInstance(std::shared_ptr<Transform> value);
+
+	/// <summary>
+	/// Removes the specified instance from the instance list
+	/// </summary>
+	/// <param name="instanceId">The index of the instance to remove</param>
+	void RemoveInstance(int instanceId);
 
 #pragma endregion
 

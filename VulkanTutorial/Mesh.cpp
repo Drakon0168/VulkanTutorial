@@ -1,9 +1,14 @@
 #include "pch.h"
 #include "Mesh.h"
 
+#include "TriangleApp.h"
+#include "TransformData.h"
+
+#define logicalDevice TriangleApp::logicalDevice
+
 #pragma region Constructor
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint16_t> indices, std::shared_ptr<Buffer> vertexBuffer, uint32_t vertexBufferOffset, std::shared_ptr<Buffer> indexBuffer, uint32_t indexBufferOffset, std::vector<std::shared_ptr<Buffer>> uniformBuffers)
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint16_t> indices, std::shared_ptr<Buffer> vertexBuffer, uint32_t vertexBufferOffset, std::shared_ptr<Buffer> indexBuffer, uint32_t indexBufferOffset, std::vector<std::shared_ptr<Transform>> instances, std::shared_ptr<Buffer> instanceBuffer)
 {
 	this->vertices = vertices;
 	this->indices = indices;
@@ -11,11 +16,55 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint16_t> indices, std::sha
 	this->vertexBufferOffset = vertexBufferOffset;
 	this->indexBuffer = indexBuffer;
 	this->indexBufferOffset = indexBufferOffset;
-	this->uniformBuffers = uniformBuffers;
+	this->instances = instances;
+	this->instanceBuffer = instanceBuffer;
 
-	transform = std::make_shared<Transform>();
+	activeInstanceCount = static_cast<uint32_t>(instances.size());
+}
 
-	std::cout << "Called in file " << __FILE__ << " line: " << __LINE__ << std::endl;
+#pragma endregion
+
+#pragma region Buffer Management
+
+void Mesh::CreateInstanceBuffer()
+{
+	//Get Data as TransformData
+	std::vector<std::shared_ptr<Transform>> activeInstances = GetActiveInstances();
+	std::vector<TransformData> bufferData(activeInstanceCount);
+
+	for (size_t i = 0; i < activeInstanceCount; i++) {
+		bufferData[i] = TransformData::LoadMat4(activeInstances[i]->GetModelMatrix());
+	}
+
+	//Create buffer
+	VkDeviceSize bufferSize = sizeof(TransformData) * bufferData.size();
+	instanceBuffer = std::make_shared<Buffer>(VkBuffer(), VkDeviceMemory());
+	Buffer::CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, *instanceBuffer);
+
+	//Copy Data
+	void* data;
+	vkMapMemory(logicalDevice, instanceBuffer->GetBufferMemory(), 0, bufferSize, 0, &data);
+	memcpy(data, bufferData.data(), bufferSize);
+	vkUnmapMemory(logicalDevice, instanceBuffer->GetBufferMemory());
+}
+
+void Mesh::UpdateInstanceBuffer()
+{
+	//Get Data as TransformData
+	std::vector<std::shared_ptr<Transform>> activeInstances = GetActiveInstances();
+	std::vector<TransformData> bufferData(activeInstanceCount);
+
+	for (size_t i = 0; i < activeInstanceCount; i++) {
+		bufferData[i] = TransformData::LoadMat4(activeInstances[i]->GetModelMatrix());
+	}
+
+	VkDeviceSize bufferSize = sizeof(TransformData) * bufferData.size();
+
+	//Copy Data
+	void* data;
+	vkMapMemory(logicalDevice, instanceBuffer->GetBufferMemory(), 0, bufferSize, 0, &data);
+	memcpy(data, bufferData.data(), bufferSize);
+	vkUnmapMemory(logicalDevice, instanceBuffer->GetBufferMemory());
 }
 
 #pragma endregion
@@ -74,34 +123,69 @@ void Mesh::SetIndexBuffer(std::shared_ptr<Buffer> value, uint32_t offset)
 	indexBufferOffset = offset;
 }
 
-std::vector<VkDescriptorSet> Mesh::GetDescriptorSets()
+uint32_t Mesh::GetActiveInstanceCount()
 {
-	return descriptorSets;
+	return activeInstanceCount;
 }
 
-void Mesh::SetDescriptorSets(std::vector<VkDescriptorSet> value)
+std::vector<std::shared_ptr<Transform>> Mesh::GetActiveInstances()
 {
-	descriptorSets = value;
+	std::vector<std::shared_ptr<Transform>> activeInstances;
+	activeInstanceCount = 0;
+
+	for (size_t i = 0; i < instances.size(); i++) {
+		if (instances[i] != nullptr) {
+			activeInstances.push_back(instances[i]);
+			activeInstanceCount++;
+		}
+	}
+
+	return activeInstances;
 }
 
-std::vector<std::shared_ptr<Buffer>> Mesh::GetUniformBuffers()
+std::shared_ptr<Buffer> Mesh::GetInstanceBuffer()
 {
-	return uniformBuffers;
+	return instanceBuffer;
 }
 
-void Mesh::SetUniformBuffers(std::vector<std::shared_ptr<Buffer>> value)
+void Mesh::SetInstanceBuffer(std::shared_ptr<Buffer> value)
 {
-	uniformBuffers = value;
-}
-
-std::shared_ptr<Transform> Mesh::GetTransform()
-{
-	return transform;
+	instanceBuffer = value;
 }
 
 #pragma endregion
 
 #pragma region Mesh Generation
+
+void Mesh::AddInstance(std::shared_ptr<Transform> value)
+{
+	activeInstanceCount++;
+	size_t freeIndex = -1;
+
+	for (size_t i = 0; i < instances.size(); i++) {
+		if (instances[i] == nullptr) {
+			freeIndex = i;
+			break;
+		}
+	}
+
+	if (freeIndex == -1) {
+		instances.push_back(value);
+		return;
+	}
+
+	instances[freeIndex] = value;
+}
+
+void Mesh::RemoveInstance(int instanceId)
+{
+	if (instanceId < 0 || instanceId >= instances.size()) {
+		throw std::runtime_error("Failed to remove instance Id out of bounds!");
+	}
+
+	activeInstanceCount--;
+	instances[instanceId] == nullptr;
+}
 
 void Mesh::GeneratePlane()
 {
@@ -175,7 +259,7 @@ void Mesh::GenerateSphere(int resolution)
 	//Set Vertices
 	float angleOffset = glm::radians(360.0f) / resolution;
 	float heightAngleOffset = glm::radians(180.0f) / (resolution - 1);
-	float radius = 0.75f;
+	float radius = 0.5f;
 
 	//Add cap
 	vertices.push_back(Vertex(glm::vec3(0.0f, radius, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec2(0.0f, 0.0f)));
